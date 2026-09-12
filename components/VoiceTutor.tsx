@@ -18,7 +18,7 @@ interface TurnLog {
   transcript: string;
   assessment: AssessmentResult | null;
   tutorResponse: TutorResponse | null;
-  understandingSummary: string;
+  languageNote: string | null;
   timestamp: string;
   difficulty: number;
 }
@@ -26,24 +26,18 @@ interface TurnLog {
 const CURATED_PROMPTS = [
   {
     subject: "Mathematics",
-    badgeColor: "bg-indigo-light text-indigo border-indigo-border",
-    topic: "Signed Multiplication",
+    topic: "Signed multiplication",
     prompt: "Why negative times negative go give positive?",
-    label: "Conceptual Question",
   },
   {
-    subject: "Biology / Science",
-    badgeColor: "bg-leaf-light text-leaf border-leaf-border",
+    subject: "Biology",
     topic: "Photosynthesis",
     prompt: "I understand say chlorophyll dey important, but why exactly?",
-    label: "Clarification",
   },
   {
     subject: "English Language",
-    badgeColor: "bg-ochre-light text-ochre border-ochre-border",
-    topic: "Reading Comprehension",
+    topic: "Reading comprehension",
     prompt: "How do I identify the main idea of this passage?",
-    label: "Procedural Guide",
   },
 ];
 
@@ -61,7 +55,6 @@ export default function VoiceTutor() {
   const isFollowUp = session.topic !== "" && session.concept !== "";
   const latestTurn = history[history.length - 1];
 
-  // Auto-scroll on new responses
   useEffect(() => {
     if (history.length > 0 && turnContainerRef.current) {
       turnContainerRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -102,7 +95,9 @@ export default function VoiceTutor() {
           transcript,
           assessment: data.assessment,
           tutorResponse: data.tutorResponse,
-          understandingSummary: data.understandingSummary,
+          // Only ever a real, computed observation from the language layer —
+          // never a hard-coded "code-switch detected" label.
+          languageNote: nextSession.languagePattern,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
           difficulty: nextSession.difficulty,
         };
@@ -131,8 +126,8 @@ export default function VoiceTutor() {
           setPhase("speech_unavailable");
           setSpeechErrorNote(
             data.code === "REQUIRES_API_ACCESS"
-              ? "Live Sahara STT credentials not detected in this environment. You can use the manual text prompt below to test full reasoning and adaptation."
-              : "We could not transcribe that recording clearly. Try moving closer to your microphone or speak again.",
+              ? "Speech recognition isn't configured in this environment yet. You can type your question below in the meantime."
+              : "We couldn't make that out clearly. Try moving closer to your microphone, or speak again.",
           );
           setShowManualInput(true);
           return;
@@ -140,7 +135,7 @@ export default function VoiceTutor() {
         await submitTranscript(data.result.transcript);
       } catch {
         setPhase("speech_unavailable");
-        setSpeechErrorNote("Network difficulty connecting to Sahara Speech STT. You can type what you said below.");
+        setSpeechErrorNote("There was a network problem reaching speech recognition. You can type what you said below.");
         setShowManualInput(true);
       }
     },
@@ -153,7 +148,7 @@ export default function VoiceTutor() {
       const blob = await recorder.stop();
       if (!blob) {
         setPhase("speech_unavailable");
-        setSpeechErrorNote("No audio caught. Please check microphone permissions and try speaking again.");
+        setSpeechErrorNote("No audio came through. Please check microphone permissions and try again.");
         setShowManualInput(true);
         return;
       }
@@ -181,86 +176,38 @@ export default function VoiceTutor() {
   const isRecording = recorder.status === "recording";
 
   return (
-    <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10 flex flex-col gap-6">
-      {/* 1. Header & Live Context Ribbon */}
-      <div className="rounded-2xl border border-line bg-paper-card p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-leaf animate-pulse" aria-hidden="true" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-ink">
-              Voice Tutor Console
-            </span>
-            <span className="text-xs text-ink-muted">·</span>
-            <span className="text-xs text-indigo font-medium">English + Nigerian Pidgin</span>
-          </div>
-
-          <div className="flex items-center gap-2 text-xs text-ink-soft">
+    <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col gap-8">
+      {/* Quiet status line, not a dashboard header */}
+      <div className="flex items-center justify-between text-xs text-ink-muted">
+        <span>
+          {session.topic ? (
             <span>
-              {session.topic ? (
-                <strong className="text-ink">{session.topic}</strong>
-              ) : (
-                <span className="italic text-ink-muted">Awaiting learner question...</span>
-              )}
+              <strong className="text-ink font-medium">{session.topic}</strong>
+              <span className="mx-1.5">&middot;</span>
+              Level {session.difficulty} of 5
             </span>
-            {session.topic && (
-              <>
-                <span>·</span>
-                <span>Attempts: {session.attempts}</span>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Right side: Difficulty Ladder + Reset */}
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-line/60">
-          <div className="flex items-center gap-1.5 bg-paper-subtle px-3 py-1.5 rounded-xl border border-line">
-            <span className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider">
-              Ladder
-            </span>
-            <div className="flex items-center gap-1 ml-1" title={`Difficulty Level ${session.difficulty} of 5`}>
-              {[1, 2, 3, 4, 5].map((lvl) => (
-                <span
-                  key={lvl}
-                  className={`h-2.5 w-2.5 rounded-full transition-all ${
-                    lvl <= session.difficulty
-                      ? "bg-indigo scale-105"
-                      : "bg-line"
-                  }`}
-                />
-              ))}
-            </div>
-            <span className="text-xs font-semibold text-indigo ml-1">L{session.difficulty}</span>
-          </div>
-
-          {history.length > 0 && (
-            <button
-              type="button"
-              onClick={resetSession}
-              className="text-xs text-ink-muted hover:text-rust font-medium px-2.5 py-1.5 rounded-lg hover:bg-paper-elevated transition-colors"
-            >
-              Reset
-            </button>
+          ) : (
+            "Ask anything you're learning about"
           )}
-        </div>
+        </span>
+        {history.length > 0 && (
+          <button
+            type="button"
+            onClick={resetSession}
+            className="text-ink-muted hover:text-rust font-medium"
+          >
+            Start over
+          </button>
+        )}
       </div>
 
-      {/* 2. Interactive Voice Console (Hero Microphone) */}
-      <div className="rounded-3xl border border-line bg-gradient-to-b from-paper-card to-paper-elevated/40 p-6 sm:p-8 shadow-sm flex flex-col items-center justify-center gap-5 text-center relative overflow-hidden">
-        {/* Subtle decorative background glow */}
-        <div
-          className={`absolute inset-0 transition-opacity duration-700 pointer-events-none ${
-            isRecording ? "opacity-100 bg-ochre-light/40" : "opacity-0"
-          }`}
-          aria-hidden="true"
-        />
-
-        {/* Tactile Microphone Button Container */}
-        <div className="relative flex items-center justify-center my-2">
-          {/* Animated Listening Pulse Rings */}
+      {/* Voice console */}
+      <div className="flex flex-col items-center justify-center gap-5 text-center py-6">
+        <div className="relative flex items-center justify-center">
           {isRecording && (
             <>
-              <span className="absolute h-32 w-32 rounded-full bg-ochre/25 listen-ring-1" aria-hidden="true" />
-              <span className="absolute h-40 w-40 rounded-full bg-ochre/15 listen-ring-2" aria-hidden="true" />
+              <span className="absolute h-24 w-24 rounded-full bg-ochre/15 listen-ring-1" aria-hidden="true" />
+              <span className="absolute h-28 w-28 rounded-full bg-ochre/10 listen-ring-2" aria-hidden="true" />
             </>
           )}
 
@@ -271,318 +218,225 @@ export default function VoiceTutor() {
             aria-pressed={isRecording}
             aria-label={
               isRecording
-                ? "Stop recording speech"
+                ? "Stop recording"
                 : isFollowUp
-                  ? "Speak your answer to the tutor"
-                  : "Speak your question to the tutor"
+                  ? "Speak your answer"
+                  : "Speak your question"
             }
-            className={`relative z-10 h-24 w-24 sm:h-28 sm:w-28 rounded-full flex flex-col items-center justify-center transition-all duration-300 shadow-md active:scale-95 focus-visible:outline-indigo ${
+            className={`relative z-10 h-20 w-20 sm:h-24 sm:w-24 rounded-full flex items-center justify-center transition-all duration-300 active:scale-95 ${
               isRecording
-                ? "bg-ochre text-paper shadow-ochre/30 shadow-lg scale-105"
+                ? "bg-ochre text-paper scale-105"
                 : isBusy
                   ? "bg-indigo-soft text-paper opacity-80 cursor-wait"
-                  : "bg-indigo hover:bg-indigo-soft text-paper hover:shadow-indigo/25 hover:shadow-lg"
+                  : "bg-indigo hover:bg-indigo-soft text-paper"
             }`}
           >
             {isBusy ? (
-              <svg className="animate-spin h-8 w-8 text-paper" viewBox="0 0 24 24" fill="none">
+              <svg className="animate-spin h-7 w-7" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
               </svg>
             ) : isRecording ? (
-              <div className="flex flex-col items-center gap-1">
-                <span className="h-6 w-6 rounded-md bg-paper flex items-center justify-center">
-                  <span className="h-3 w-3 rounded-xs bg-ochre" />
-                </span>
-                <span className="text-[11px] font-bold tracking-wider uppercase text-paper">Stop</span>
-              </div>
+              <span className="h-5 w-5 rounded-sm bg-paper" />
             ) : (
-              <div className="flex flex-col items-center gap-1">
-                <MicIcon />
-                <span className="text-[10px] font-semibold tracking-wider uppercase text-paper/80">
-                  {isFollowUp ? "Answer" : "Speak"}
-                </span>
-              </div>
+              <MicIcon />
             )}
           </button>
         </div>
 
-        {/* Dynamic Status & Guidance Prompt */}
-        <div className="space-y-1.5 relative z-10 max-w-md" aria-live="polite">
-          <p className="text-sm sm:text-base font-semibold text-ink tracking-tight">
+        {/* Live status: waveform + elapsed time while listening */}
+        {isRecording && (
+          <div className="flex items-center gap-2.5" aria-hidden="true">
+            <div className="flex items-end gap-1 h-5">
+              {[0, 1, 2, 3, 4].map((i) => (
+                <span
+                  key={i}
+                  style={{ animationDelay: `${i * 0.12}s` }}
+                  className="w-1 h-full rounded-full bg-ochre wave-bar"
+                />
+              ))}
+            </div>
+            <span className="text-xs font-mono text-ink-muted tabular-nums">
+              0:{String(recorder.durationSeconds).padStart(2, "0")}
+            </span>
+          </div>
+        )}
+
+        <div className="space-y-1 max-w-sm" aria-live="polite">
+          <p className="text-sm sm:text-base font-medium text-ink">
             {phase === "processing_speech"
-              ? "Transcribing your speech via Sahara STT…"
+              ? "Listening back to what you said…"
               : phase === "processing_tutor"
-                ? "Analyzing educational intent & formulating answer…"
+                ? "Thinking it through…"
                 : isRecording
-                  ? `Listening to your voice (${recorder.durationSeconds}s) — tap to finish`
+                  ? "Listening — tap to finish"
                   : isFollowUp
-                    ? "Tap the microphone to speak your answer"
-                    : "Tap to ask a question in English or Nigerian Pidgin"}
+                    ? "Tap to speak your answer"
+                    : "Ask anything you're learning about"}
           </p>
           <p className="text-xs text-ink-muted">
             {isRecording
-              ? "Speak naturally — code-switching between English and Pidgin is fully supported."
+              ? "Speak naturally. You can mix languages."
               : isFollowUp
-                ? "Your response will be checked for concept understanding and adapted."
-                : "Examples: Math rules, photosynthesis, or English comprehension main ideas."}
+                ? "Your answer will be checked for understanding."
+                : "Try mathematics, science, or an English comprehension question."}
           </p>
         </div>
 
-        {/* Audio Visualizer Bars Simulation when recording */}
-        {isRecording && (
-          <div className="flex items-center justify-center gap-1.5 pt-1" aria-hidden="true">
-            {[14, 24, 18, 28, 20, 32, 16, 26, 12].map((height, i) => (
-              <span
-                key={i}
-                style={{ height: `${height}px` }}
-                className="w-1 rounded-full bg-ochre animate-pulse"
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Recording / Hardware Errors */}
         {recorder.errorMessage && (
-          <div role="alert" className="p-3 rounded-xl bg-rust-light border border-rust-border text-xs text-rust max-w-md">
+          <p role="alert" className="text-xs text-rust max-w-xs">
             {recorder.errorMessage}
-          </div>
+          </p>
         )}
       </div>
 
-      {/* 3. Speech Error / Fallback Drawer */}
+      {/* Manual text fallback */}
       {(phase === "speech_unavailable" || showManualInput) && (
-        <div className="rounded-2xl border border-line bg-paper-card p-5 shadow-xs flex flex-col gap-3 animate-fade-in">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-ink">
-                Type Question Manually
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-paper-subtle text-ink-muted border border-line">
-                Fallback Mode
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowManualInput(false)}
-              className="text-xs text-ink-muted hover:text-ink"
-            >
-              Hide
-            </button>
-          </div>
-
+        <div className="flex flex-col gap-2.5 animate-fade-in">
           {speechErrorNote && (
-            <p className="text-xs text-ink-soft bg-paper-subtle p-3 rounded-xl border border-line/80 leading-relaxed">
-              {speechErrorNote}
-            </p>
+            <p className="text-xs text-ink-soft">{speechErrorNote}</p>
           )}
-
           <form onSubmit={handleManualSubmit} className="flex flex-col sm:flex-row gap-2.5">
             <label htmlFor="manual-transcript-input" className="sr-only">
-              Type your question or response
+              Type your question or answer
             </label>
             <input
               id="manual-transcript-input"
               type="text"
               value={manualText}
               onChange={(e) => setManualText(e.target.value)}
-              placeholder="e.g. Why negative times negative go give positive?"
-              className="flex-1 rounded-xl border border-line px-4 py-2.5 text-sm bg-paper text-ink placeholder:text-ink-muted/70 focus:outline-none focus:ring-2 focus:ring-indigo shadow-xs"
+              placeholder="Type your question…"
+              className="flex-1 rounded-xl border border-line px-4 py-2.5 text-sm bg-paper-card text-ink placeholder:text-ink-muted/70 focus:outline-none focus:ring-2 focus:ring-indigo"
             />
             <button
               type="submit"
               disabled={!manualText.trim() || isBusy}
-              className="rounded-xl bg-indigo text-paper px-5 py-2.5 text-sm font-semibold hover:bg-indigo-soft transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-xs"
+              className="rounded-xl bg-indigo text-paper px-5 py-2.5 text-sm font-medium hover:bg-indigo-soft transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Submit
+              Ask
             </button>
           </form>
         </div>
       )}
 
-      {/* Manual Input Toggle Button */}
       {!showManualInput && phase !== "speech_unavailable" && (
-        <div className="flex justify-center -mt-2">
+        <div className="flex justify-center -mt-4">
           <button
             type="button"
             onClick={() => setShowManualInput(true)}
             className="text-xs text-ink-muted hover:text-indigo font-medium underline underline-offset-4"
           >
-            Or type your question manually
+            Or type instead
           </button>
         </div>
       )}
 
-      {/* System Alerts */}
       {systemNote && (
-        <div role="alert" className="p-3.5 rounded-xl bg-rust-light border border-rust-border text-xs text-rust">
-          {systemNote}
-        </div>
+        <p role="alert" className="text-xs text-rust text-center">{systemNote}</p>
       )}
 
-      {/* 4. Empty State: Curated Question Starters */}
+      {/* Empty state: curated starters */}
       {history.length === 0 && phase === "idle" && (
-        <div className="rounded-2xl border border-line bg-paper-card p-6 shadow-xs flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <p className="text-xs uppercase tracking-widest text-ink font-semibold">
-              Curriculum Starters (Code-Switched Examples)
-            </p>
-            <span className="text-xs text-ink-muted">Tap any prompt to test</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+        <div className="flex flex-col gap-3 pt-2 section-divide border-t border-line">
+          <p className="text-xs uppercase tracking-wider text-ink-muted font-semibold pt-4">
+            Or try one of these
+          </p>
+          <div className="flex flex-col divide-y divide-line/70">
             {CURATED_PROMPTS.map((item) => (
               <button
                 key={item.topic}
                 type="button"
                 onClick={() => submitTranscript(item.prompt)}
-                className="text-left rounded-xl border border-line p-4 bg-paper hover:bg-paper-elevated hover:border-indigo/40 transition-all flex flex-col justify-between gap-3 shadow-2xs group focus-visible:outline-indigo"
+                className="text-left py-3 flex items-center justify-between gap-4 group"
               >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${item.badgeColor}`}>
-                      {item.subject}
-                    </span>
-                  </div>
-                  <p className="text-xs font-medium text-ink group-hover:text-indigo transition-colors">
-                    {item.topic}
+                <div>
+                  <p className="text-sm text-ink group-hover:text-indigo transition-colors italic">
+                    &ldquo;{item.prompt}&rdquo;
                   </p>
+                  <p className="text-xs text-ink-muted mt-0.5">{item.subject} &middot; {item.topic}</p>
                 </div>
-                <blockquote className="text-xs text-ink-soft italic font-serif leading-relaxed border-l-2 border-ochre/60 pl-2">
-                  &ldquo;{item.prompt}&rdquo;
-                </blockquote>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink-muted group-hover:text-indigo shrink-0 transition-colors" aria-hidden="true">
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* 5. Pedagogical Turn Stream */}
-      <div ref={turnContainerRef} className="flex flex-col gap-6">
+      {/* Conversation stream */}
+      <div ref={turnContainerRef} className="flex flex-col gap-8">
         {history.map((turn, index) => (
-          <TurnCard key={turn.id || index} turn={turn} turnIndex={index + 1} />
+          <TurnBlock key={turn.id || index} turn={turn} isLast={index === history.length - 1} />
         ))}
       </div>
 
-      {/* Out of Curriculum Safe Fallback Note */}
       {latestTurn && latestTurn.tutorResponse == null && (
-        <div className="rounded-2xl border border-line bg-paper-card p-5 text-xs text-ink-soft space-y-2">
-          <p className="font-semibold text-ink">Topic Discovery Notice:</p>
-          <p className="leading-relaxed">
-            I could not match that question to our current secondary curriculum modules (Mathematics: signed multiplication; Science: photosynthesis; English: reading comprehension main ideas). Please try one of the starter questions above.
-          </p>
-        </div>
+        <p className="text-sm text-ink-soft">
+          I couldn&apos;t match that to a topic in the current curriculum yet (mathematics: signed
+          multiplication; science: photosynthesis; English: reading comprehension). Try one of the
+          starter questions above.
+        </p>
       )}
 
-      {/* Educational AI Notice */}
       <p className="text-[11px] text-ink-muted text-center pt-4 border-t border-line/60">
-        VoiceLearn Africa uses automated speech recognition & pedagogical reasoning for secondary revision. Designed for low-stakes practice with teacher oversight.
+        VoiceLearn uses automated speech recognition for low-stakes revision practice, alongside a
+        teacher &mdash; not in place of one.
       </p>
     </div>
   );
 }
 
-function TurnCard({ turn, turnIndex }: { turn: TurnLog; turnIndex: number }) {
+function TurnBlock({ turn, isLast }: { turn: TurnLog; isLast: boolean }) {
+  const showLanguageNote = turn.languageNote && turn.languageNote !== "Standard English";
+
   return (
-    <div className="rounded-2xl border border-line bg-paper-card p-5 sm:p-6 shadow-xs flex flex-col gap-4 animate-fade-in">
-      {/* Turn Header */}
-      <div className="flex items-center justify-between pb-3 border-b border-line/60 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="h-5 w-5 rounded-full bg-indigo text-paper flex items-center justify-center text-[10px] font-bold">
-            {turnIndex}
-          </span>
-          <span className="font-semibold text-ink">Turn {turnIndex}</span>
-        </div>
-        <div className="flex items-center gap-2 text-ink-muted text-[11px]">
-          <span>{turn.timestamp}</span>
-          <span>·</span>
-          <span className="px-2 py-0.5 rounded bg-paper-subtle font-medium text-ink">
-            Ladder Level {turn.difficulty}
-          </span>
+    <div className={`flex flex-col gap-4 ${isLast ? "animate-fade-in" : ""}`}>
+      {/* Learner message */}
+      <div className="flex justify-end">
+        <div className="max-w-[85%] flex flex-col items-end gap-1">
+          <p className="rounded-2xl rounded-tr-sm bg-indigo text-paper px-4 py-2.5 text-sm sm:text-base leading-relaxed">
+            {turn.transcript}
+          </p>
+          {showLanguageNote && (
+            <span className="text-[11px] text-ink-muted pr-1">{turn.languageNote}</span>
+          )}
         </div>
       </div>
 
-      {/* Learner Utterance */}
-      <div className="space-y-1.5">
-        <div className="flex items-center gap-2">
-          <span className="text-xs uppercase tracking-wider font-semibold text-ink-muted">You Spoke</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-ochre-light text-ochre font-medium border border-ochre-border">
-            Code-Switch Recognized
-          </span>
-        </div>
-        <blockquote className="text-sm sm:text-base font-serif italic text-ink bg-paper p-3.5 rounded-xl border border-line">
-          &ldquo;{turn.transcript}&rdquo;
-        </blockquote>
-      </div>
-
-      {/* Assessment Feedback (If answering a follow-up) */}
+      {/* Assessment (when this turn answers a follow-up) */}
       {turn.assessment && (
-        <div
-          className={`rounded-xl p-4 text-xs sm:text-sm border space-y-1.5 ${
-            turn.assessment.outcome === "correct"
-              ? "bg-leaf-light border-leaf-border text-leaf-dark"
-              : turn.assessment.outcome === "partially_correct"
-                ? "bg-ochre-light border-ochre-border text-ochre"
-                : turn.assessment.outcome === "incorrect_misconception"
-                  ? "bg-rust-light border-rust-border text-rust"
-                  : "bg-paper-subtle border-line text-ink-soft"
-          }`}
-        >
-          <div className="flex items-center justify-between font-semibold">
-            <span className="uppercase tracking-wider text-[10px]">
-              Diagnostic Check:{" "}
-              {turn.assessment.outcome === "correct"
-                ? "Correct Understanding"
+        <div className="flex justify-end">
+          <p
+            className={`max-w-[85%] text-xs sm:text-sm leading-relaxed pr-1 ${
+              turn.assessment.outcome === "correct"
+                ? "text-leaf-dark"
                 : turn.assessment.outcome === "partially_correct"
-                  ? "Partially Correct"
+                  ? "text-ochre"
                   : turn.assessment.outcome === "incorrect_misconception"
-                    ? "Misconception Detected"
-                    : "Review Needed"}
-            </span>
-          </div>
-          <p className="leading-relaxed">{turn.assessment.feedback}</p>
+                    ? "text-rust"
+                    : "text-ink-soft"
+            }`}
+          >
+            {turn.assessment.feedback}
+          </p>
         </div>
       )}
 
-      {/* Intent & Understanding Card */}
+      {/* Tutor explanation */}
       {turn.tutorResponse && (
-        <div className="rounded-xl border border-indigo-border/70 bg-indigo-light/30 p-3.5 flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-indigo">Topic:</span>
-            <span className="text-ink font-medium">{turn.tutorResponse.topic}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-ink-muted">Need:</span>
-            <span className="capitalize px-2 py-0.5 rounded-md bg-paper-card border border-indigo-border text-indigo font-medium">
-              {turn.tutorResponse.intent.replace(/_/g, " ")}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Tutor Explanation & Follow-Up Check */}
-      {turn.tutorResponse && (
-        <div className="space-y-4 pt-1">
-          {/* Explanation */}
-          <div className="space-y-1.5">
-            <p className="text-xs uppercase tracking-wider font-semibold text-ink-muted">Tutor Explanation</p>
-            <p className="text-sm sm:text-base text-ink leading-relaxed font-normal">
-              {turn.tutorResponse.explanation}
-            </p>
+        <div className="flex flex-col gap-4 max-w-[92%]">
+          <div className="rounded-2xl rounded-tl-sm bg-paper-elevated px-4 py-3.5 text-sm sm:text-base text-ink leading-relaxed">
+            {turn.tutorResponse.explanation}
           </div>
 
-          {/* Follow-up Interactive Question */}
-          <div className="rounded-xl border border-ochre-border bg-ochre-light/50 p-4 space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-ochre" />
-              <p className="text-xs uppercase tracking-wider font-bold text-ochre">Practice Follow-Up Question</p>
-            </div>
-            <p className="text-sm sm:text-base font-medium text-ink">
+          <div className="pl-4 border-l-2 border-ochre-border flex flex-col gap-1">
+            <p className="text-xs uppercase tracking-wider font-semibold text-ochre">Your turn</p>
+            <p className="text-sm sm:text-base text-ink font-medium leading-relaxed">
               {turn.tutorResponse.followUpQuestion}
             </p>
-            <p className="text-[11px] text-ink-muted pt-1">
-              Tap the microphone above to speak your answer to this question.
-            </p>
+            <p className="text-[11px] text-ink-muted pt-0.5">Tap the microphone above to answer.</p>
           </div>
         </div>
       )}
@@ -592,7 +446,7 @@ function TurnCard({ turn, turnIndex }: { turn: TurnLog; turnIndex: number }) {
 
 function MicIcon() {
   return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <rect x="9" y="2" width="6" height="12" rx="3" fill="currentColor" />
       <path
         d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"

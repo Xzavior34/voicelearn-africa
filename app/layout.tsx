@@ -4,9 +4,9 @@ import Footer from "@/components/Footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "VoiceLearn Africa — Voice-First Multilingual Education",
+  title: "Regamos VoiceLearn — Voice-First Learning for African Learners",
   description:
-    "Learning should understand the learner, not force the learner to change how they speak. Powered by Sahara Speech AI for African code-switched learning.",
+    "Learning should understand the learner, not force the learner to change how they speak. A voice-first learning companion for English and African code-switched speech.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
