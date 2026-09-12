@@ -391,7 +391,7 @@ export const saharaProvider: SpeechProvider = {
           checkedAt,
           latencyMs: Date.now() - started,
         });
-      }, 10_000);
+      }, 20_000);
 
       socket.on("message", (data) => {
         if (settled) return;
