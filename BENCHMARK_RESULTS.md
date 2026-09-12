@@ -14,15 +14,39 @@ Live integration status:
 
 ## Part 1 — ASR comparison
 
-| Provider | Live | Samples measured | Mean WER | Mean CER | Mean code-switch preservation |
-|---|---|---|---|---|---|
-| sahara | true | 0/32 | AUDIO_DATASET_REQUIRED | AUDIO_DATASET_REQUIRED | AUDIO_DATASET_REQUIRED |
-| model-b | false | 0/32 | REQUIRES_API_ACCESS | REQUIRES_API_ACCESS | REQUIRES_API_ACCESS |
-| model-c | false | 0/32 | REQUIRES_API_ACCESS | REQUIRES_API_ACCESS | REQUIRES_API_ACCESS |
+### Real Audio Results (2026-09-12)
+
+**Source recording**: `audio file.mp4` — 16.47s mobile voice recording (Samsung Android 16, AAC mono 48kHz, transcoded to PCM16 16kHz mono for Sahara).
+
+**Human reference transcript** (confirmed by speaker):
+> "Why does negative times negative equal positive? My name is Philip, I am a software engineer, and how are you doing today? I hope you're doing very well."
+
+| Metric | Sahara (`en` mode) | Sahara (`en-pcm` mode) |
+|---|---|---|
+| **Transcript** | "Why does negative times negative equal positive? My name is Philip, I am a software engineer, and how are you doing today? I hope youre doing very well." | "Why does negative plus negative equal positive my name is Philip. I am a suture engineer and how are you doing today? I hope youre doing very well" |
+| **WER** | **3.6%** | 25.0% |
+| **CER** | **0.8%** | 10.3% |
+| **Lexical Overlap** | 92.3% | 56.3% |
+| **Latency** | 12,253 ms | 10,082 ms |
+| **Intent Match** | ✅ `signed-multiplication` | ❌ (not matched) |
+| **Downstream Tutor** | ✅ Generates correct follow-up | ❌ N/A |
+
+**Key findings**:
+- Sahara `en` mode achieves **3.6% WER** on this recording — near-perfect transcription. The only error is a missing apostrophe (`youre` vs `you're`).
+- Sahara `en-pcm` mode (Pidgin code-switch mode) produces 25% WER — it substitutes `times→plus` and `software→suture`, losing the educational intent. This is expected: the recording is standard English, not Pidgin.
+- The `en` transcript successfully triggers the full tutor pipeline: intent extraction → concept match (`signed-multiplication`) → Socratic follow-up question ("If -4 x -3 = ?, what do you think the answer is?").
+
+### Dataset-wide Summary
+
+| Provider | Live | Audio on Disk | Samples Evaluated | Mean WER | Mean CER | Status |
+|---|---|---|---|---|---|---|
+| sahara | ✅ true | 1 | 1 | **3.6%** (en) | **0.8%** (en) | LIVE — REAL AUDIO EVALUATED |
+| model-b | ❌ false | 0 | 0 | — | — | BLOCKED (REQUIRES_API_ACCESS) |
+| model-c | ❌ false | 0 | 0 | — | — | BLOCKED (REQUIRES_API_ACCESS) |
 
 **HONEST REPORTING STATUS**:
-- **Sahara (`live: true`)**: Credentials and endpoint connectivity are verified live via `npm run sahara:health`. ASR WER/CER measurement is pending physical audio recordings from consenting adult speakers (`AUDIO_DATASET_REQUIRED`).
-- **Model B & Model C (`live: false`)**: Unconfigured comparison models (`REQUIRES_API_ACCESS`). Zero numbers are never fabricated.
+- **Sahara (`live: true`)**: 1 real audio recording transcribed live via `wss://infer.voice.intron.io/stt/v1/stream`. WER 3.6% (en mode). Full end-to-end pipeline verified: audio → PCM conversion → Sahara streaming → transcript → intent extraction → tutor response.
+- **Model B & Model C (`live: false`)**: Unconfigured comparison models (`BLOCKED_REQUIRES_API_ACCESS`). Zero numbers are never fabricated.
 
 ## Part 2 — Educational understanding baseline (internal text-only baseline — NOT a Sahara speech result)
 

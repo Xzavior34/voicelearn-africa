@@ -30,7 +30,7 @@ async function main() {
   const asr = await runAsrComparison();
   for (const summary of asr.summaries) {
     console.log(
-      `  ${summary.providerName}: live=${summary.isLive} measured=${summary.samplesMeasured}/${summary.samplesAttempted} meanWER=${summary.meanWer ?? "N/A"}`,
+      `  ${summary.providerName}: live=${summary.isLive} | audioOnDisk=${summary.audioSamplesAvailable}/${summary.totalDatasetSamples} | evaluated=${summary.samplesMeasured} | status=${summary.statusLabel}`,
     );
   }
   writeFileSync(join(reportsDir, "asr-comparison-latest.json"), JSON.stringify(asr, null, 2));
@@ -47,13 +47,13 @@ async function main() {
 
 ## ASR comparison (per provider)
 
-| Provider | Live | Samples measured | Mean WER | Mean CER | Mean code-switch preservation |
-|---|---|---|---|---|---|
+| Provider | Live | Audio Files on Disk | Samples Evaluated | Mean WER | Mean CER | Code-Switch Preservation | Benchmark Status |
+|---|---|---|---|---|---|---|---|
 ${asr.summaries
   .map(
     (s) => {
       const fallback = s.isLive ? "AUDIO_DATASET_REQUIRED" : "REQUIRES_API_ACCESS";
-      return `| ${s.providerName} | ${s.isLive} | ${s.samplesMeasured}/${s.samplesAttempted} | ${s.meanWer ?? fallback} | ${s.meanCer ?? fallback} | ${s.meanCodeSwitchPreservation ?? fallback} |`;
+      return `| ${s.providerName} | ${s.isLive} | ${s.audioSamplesAvailable}/${s.totalDatasetSamples} | ${s.samplesMeasured} | ${s.meanWer ?? "—"} | ${s.meanCer ?? "—"} | ${s.meanCodeSwitchPreservation ?? "—"} | ${s.meanWer !== null ? "MEASURED" : fallback} |`;
     },
   )
   .join("\n")}

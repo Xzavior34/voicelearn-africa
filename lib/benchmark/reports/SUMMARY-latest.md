@@ -2,11 +2,11 @@
 
 ## ASR comparison (per provider)
 
-| Provider | Live | Samples measured | Mean WER | Mean CER | Mean code-switch preservation |
-|---|---|---|---|---|---|
-| sahara | true | 0/32 | AUDIO_DATASET_REQUIRED | AUDIO_DATASET_REQUIRED | AUDIO_DATASET_REQUIRED |
-| model-b | false | 0/32 | REQUIRES_API_ACCESS | REQUIRES_API_ACCESS | REQUIRES_API_ACCESS |
-| model-c | false | 0/32 | REQUIRES_API_ACCESS | REQUIRES_API_ACCESS | REQUIRES_API_ACCESS |
+| Provider | Live | Audio Files on Disk | Samples Evaluated | Mean WER | Mean CER | Code-Switch Preservation | Benchmark Status |
+|---|---|---|---|---|---|---|---|
+| sahara | true | 0/32 | 0 | — | — | — | AUDIO_DATASET_REQUIRED |
+| model-b | false | 0/32 | 0 | — | — | — | REQUIRES_API_ACCESS |
+| model-c | false | 0/32 | 0 | — | — | — | REQUIRES_API_ACCESS |
 
 ## Intent/topic extraction baseline (ground-truth transcripts, no ASR)
 

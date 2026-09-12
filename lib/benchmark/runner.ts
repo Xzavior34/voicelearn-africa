@@ -20,8 +20,13 @@ export interface AsrSampleResult {
 export interface AsrProviderSummary {
   providerName: string;
   isLive: boolean;
+  totalDatasetSamples: number;
+  audioSamplesAvailable: number;
   samplesAttempted: number;
   samplesMeasured: number;
+  samplesSkipped: number;
+  skippedReason: string;
+  statusLabel: string;
   meanWer: number | null;
   meanCer: number | null;
   meanCodeSwitchPreservation: number | null;
@@ -114,15 +119,35 @@ export async function runAsrComparison(
     .map((providerName) => {
       const rows = perSample.filter((r) => r.providerName === providerName);
       const measured = rows.filter((r) => r.status === "measured");
+      const isLive = speechProviders[providerName].isLive;
+      const audioAvailableCount = rows.filter((r) => {
+        const s = BENCHMARK_DATASET.find((d) => d.id === r.sampleId);
+        return Boolean(s?.audioFilePath && existsSync(s.audioFilePath));
+      }).length;
+      const skippedCount = rows.length - measured.length;
+      const skippedReason = isLive
+        ? (audioAvailableCount === 0
+            ? "Physical audio recordings not present on disk (AUDIO_DATASET_REQUIRED)"
+            : "Some audio samples could not be processed")
+        : `Provider ${providerName} is not configured (REQUIRES_API_ACCESS)`;
+      const statusLabel = isLive
+        ? (measured.length > 0 ? "MEASURED" : "LIVE_AUTHENTICATED (AUDIO_DATASET_REQUIRED)")
+        : "BLOCKED (REQUIRES_API_ACCESS)";
+
       const mean = (values: (number | null)[]) => {
         const nums = values.filter((v): v is number => v !== null);
         return nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
       };
       return {
         providerName,
-        isLive: speechProviders[providerName].isLive,
-        samplesAttempted: rows.length,
+        isLive,
+        totalDatasetSamples: rows.length,
+        audioSamplesAvailable: audioAvailableCount,
+        samplesAttempted: audioAvailableCount,
         samplesMeasured: measured.length,
+        samplesSkipped: skippedCount,
+        skippedReason,
+        statusLabel,
         meanWer: mean(measured.map((r) => r.wer)),
         meanCer: mean(measured.map((r) => r.cer)),
         meanCodeSwitchPreservation: mean(measured.map((r) => r.codeSwitchPreservation)),

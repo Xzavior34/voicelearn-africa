@@ -36,7 +36,9 @@ export default async function BenchmarkPage() {
             <thead>
               <tr className="border-b border-line bg-line-soft/50 text-left">
                 <th className="px-3 py-2 font-medium">Provider</th>
-                <th className="px-3 py-2 font-medium">Status</th>
+                <th className="px-3 py-2 font-medium">Provider Status</th>
+                <th className="px-3 py-2 font-medium">Audio on Disk</th>
+                <th className="px-3 py-2 font-medium">Evaluated</th>
                 <th className="px-3 py-2 font-medium">Mean WER</th>
                 <th className="px-3 py-2 font-medium">Mean CER</th>
                 <th className="px-3 py-2 font-medium">Code-switch preservation</th>
@@ -49,11 +51,13 @@ export default async function BenchmarkPage() {
                   <td className="px-3 py-2 font-medium">{s.providerName}</td>
                   <td className="px-3 py-2">
                     {s.isLive ? (
-                      <span className="text-leaf">live</span>
+                      <span className="text-leaf font-medium">Live (authenticated)</span>
                     ) : (
-                      <span className="text-ink-soft">awaiting live evaluation</span>
+                      <span className="text-ink-soft">Requires API Access</span>
                     )}
                   </td>
+                  <td className="px-3 py-2 text-ink-soft">{s.audioSamplesAvailable}/{s.totalDatasetSamples}</td>
+                  <td className="px-3 py-2 text-ink-soft">{s.samplesMeasured}</td>
                   <td className="px-3 py-2 text-ink-soft">{s.meanWer ?? "—"}</td>
                   <td className="px-3 py-2 text-ink-soft">{s.meanCer ?? "—"}</td>
                   <td className="px-3 py-2 text-ink-soft">{s.meanCodeSwitchPreservation ?? "—"}</td>

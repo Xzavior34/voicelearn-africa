@@ -151,27 +151,40 @@ function runSaharaSession(
       resolve({ transcriptText, latencyMs: Date.now() - started });
     }
 
-    function sendAudioChunksThenCommit() {
-      let ackId = 1;
-      for (const chunk of pcmChunks) {
-        socket.send(
-          JSON.stringify({
-            message_type: "INPUT_AUDIO_CHUNK",
-            audio_base_64: chunk.toString("base64"),
-            ack_id: ackId++,
-          }),
-        );
-      }
-      socket.send(JSON.stringify({ message_type: "COMMIT" }));
-      committedTimer = setTimeout(() => {
+    async function sendAudioChunksThenCommit() {
+      try {
+        let ackId = 1;
+        for (const chunk of pcmChunks) {
+          if (settled || socket.readyState !== WebSocket.OPEN) return;
+          socket.send(
+            JSON.stringify({
+              message_type: "INPUT_AUDIO_CHUNK",
+              audio_base_64: chunk.toString("base64"),
+              ack_id: ackId++,
+            }),
+          );
+          await new Promise((r) => setTimeout(r, 30));
+        }
+        if (settled || socket.readyState !== WebSocket.OPEN) return;
+        socket.send(JSON.stringify({ message_type: "COMMIT" }));
+        committedTimer = setTimeout(() => {
+          fail(
+            new SpeechProviderError(
+              "sahara",
+              "TIMEOUT",
+              `No COMMITTED_TRANSCRIPT received within ${COMMITTED_TRANSCRIPT_TIMEOUT_MS}ms of COMMIT.`,
+            ),
+          );
+        }, COMMITTED_TRANSCRIPT_TIMEOUT_MS);
+      } catch (err) {
         fail(
           new SpeechProviderError(
             "sahara",
-            "TIMEOUT",
-            `No COMMITTED_TRANSCRIPT received within ${COMMITTED_TRANSCRIPT_TIMEOUT_MS}ms of COMMIT.`,
+            "NETWORK_ERROR",
+            `Failed streaming audio chunks to Sahara: ${(err as Error).message}`,
           ),
         );
-      }, COMMITTED_TRANSCRIPT_TIMEOUT_MS);
+      }
     }
 
     socket.on("open", () => {

@@ -137,9 +137,14 @@ export default function VoiceTutor() {
 
   return (
     <div className="max-w-2xl mx-auto px-5 py-10 flex flex-col gap-8 w-full">
-      <div className="flex items-center gap-2 text-sm text-ink-soft">
-        <span className="inline-block h-2 w-2 rounded-full bg-leaf" aria-hidden />
-        English + Nigerian Pidgin
+      <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-ink-soft">
+        <div className="flex items-center gap-2">
+          <span className="inline-block h-2 w-2 rounded-full bg-leaf" aria-hidden />
+          English + Nigerian Pidgin
+        </div>
+        <span className="text-xs text-ink-soft/70 bg-line-soft/60 px-2 py-0.5 rounded">
+          AI Educational Assistant · Powered by Intron Sahara STT
+        </span>
       </div>
 
       {/* Mic control — the hero interaction */}
@@ -231,6 +236,10 @@ export default function VoiceTutor() {
           questions above.
         </p>
       )}
+
+      <p className="text-xs text-ink-soft/70 border-t border-line pt-4 text-center">
+        AI Learning Disclosure: VoiceLearn Africa uses automated speech recognition and pedagogical reasoning to support secondary-school revision. It is designed for low-stakes practice, not formal examination grading.
+      </p>
     </div>
   );
 }

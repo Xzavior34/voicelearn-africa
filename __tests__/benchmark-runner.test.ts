@@ -1,11 +1,19 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, afterEach } from "vitest";
 import { runAsrComparison, runIntentAccuracyBaseline } from "@/lib/benchmark/runner";
 import { BENCHMARK_DATASET } from "@/lib/benchmark/dataset/dataset";
 
 const QUESTION_SAMPLES = BENCHMARK_DATASET.filter((s) => s.role === "initial_question");
 
 describe("runAsrComparison", () => {
+  const originalKey = process.env.SAHARA_API_KEY;
+
+  afterEach(() => {
+    if (originalKey) process.env.SAHARA_API_KEY = originalKey;
+    else delete process.env.SAHARA_API_KEY;
+  });
+
   it("honestly reports requires_api_access for every sample when no providers are configured", async () => {
+    delete process.env.SAHARA_API_KEY;
     const { perSample, summaries } = await runAsrComparison(["sahara", "model-b", "model-c"]);
     expect(perSample.length).toBe(BENCHMARK_DATASET.length * 3);
     expect(perSample.every((r) => r.status === "requires_api_access")).toBe(true);
@@ -14,6 +22,21 @@ describe("runAsrComparison", () => {
       expect(summary.samplesMeasured).toBe(0);
       expect(summary.meanWer).toBeNull();
     }
+  });
+
+  it("distinguishes live provider lacking audio dataset from unconfigured provider", async () => {
+    process.env.SAHARA_API_KEY = "dummy-test-key";
+    const { summaries } = await runAsrComparison(["sahara", "model-b"]);
+    const saharaSummary = summaries.find((s) => s.providerName === "sahara");
+    const modelBSummary = summaries.find((s) => s.providerName === "model-b");
+
+    expect(saharaSummary?.isLive).toBe(true);
+    expect(saharaSummary?.statusLabel).toContain("AUDIO_DATASET_REQUIRED");
+    expect(saharaSummary?.audioSamplesAvailable).toBe(0);
+    expect(saharaSummary?.samplesMeasured).toBe(0);
+
+    expect(modelBSummary?.isLive).toBe(false);
+    expect(modelBSummary?.statusLabel).toContain("REQUIRES_API_ACCESS");
   });
 });
 
