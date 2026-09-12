@@ -8,7 +8,7 @@ import { extractIntent } from "../tutor/intent";
 export interface AsrSampleResult {
   sampleId: string;
   providerName: string;
-  status: "measured" | "requires_api_access" | "local_device_test_required" | "error";
+  status: "measured" | "requires_api_access" | "local_device_test_required" | "audio_dataset_required" | "error";
   wer: number | null;
   cer: number | null;
   codeSwitchPreservation: number | null;
@@ -58,7 +58,7 @@ export async function runAsrComparison(
 
       if (!audioBytes) {
         // If the provider has live credentials, the bottleneck is real human audio recording
-        const status = provider.isLive ? "local_device_test_required" : "requires_api_access";
+        const status = provider.isLive ? "audio_dataset_required" : "requires_api_access";
         perSample.push({
           sampleId: sample.id,
           providerName,
@@ -69,7 +69,7 @@ export async function runAsrComparison(
           lexicalOverlap: null,
           latencyMs: null,
           errorMessage: provider.isLive
-            ? "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+            ? "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
             : `Provider ${providerName} is not configured (REQUIRES_API_ACCESS).`,
         });
         continue;

@@ -16,12 +16,12 @@ Live integration status:
 
 | Provider | Live | Samples measured | Mean WER | Mean CER | Mean code-switch preservation |
 |---|---|---|---|---|---|
-| sahara | true | 0/32 | LOCAL_DEVICE_TEST_REQUIRED | LOCAL_DEVICE_TEST_REQUIRED | LOCAL_DEVICE_TEST_REQUIRED |
+| sahara | true | 0/32 | AUDIO_DATASET_REQUIRED | AUDIO_DATASET_REQUIRED | AUDIO_DATASET_REQUIRED |
 | model-b | false | 0/32 | REQUIRES_API_ACCESS | REQUIRES_API_ACCESS | REQUIRES_API_ACCESS |
 | model-c | false | 0/32 | REQUIRES_API_ACCESS | REQUIRES_API_ACCESS | REQUIRES_API_ACCESS |
 
 **HONEST REPORTING STATUS**:
-- **Sahara (`live: true`)**: Credentials and endpoint connectivity are verified live. ASR WER/CER measurement is pending on-device physical microphone recordings (`LOCAL_DEVICE_TEST_REQUIRED`).
+- **Sahara (`live: true`)**: Credentials and endpoint connectivity are verified live via `npm run sahara:health`. ASR WER/CER measurement is pending physical audio recordings from consenting adult speakers (`AUDIO_DATASET_REQUIRED`).
 - **Model B & Model C (`live: false`)**: Unconfigured comparison models (`REQUIRES_API_ACCESS`). Zero numbers are never fabricated.
 
 ## Part 2 — Educational understanding baseline (internal text-only baseline — NOT a Sahara speech result)

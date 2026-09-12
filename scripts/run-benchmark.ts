@@ -52,7 +52,7 @@ async function main() {
 ${asr.summaries
   .map(
     (s) => {
-      const fallback = s.isLive ? "LOCAL_DEVICE_TEST_REQUIRED" : "REQUIRES_API_ACCESS";
+      const fallback = s.isLive ? "AUDIO_DATASET_REQUIRED" : "REQUIRES_API_ACCESS";
       return `| ${s.providerName} | ${s.isLive} | ${s.samplesMeasured}/${s.samplesAttempted} | ${s.meanWer ?? fallback} | ${s.meanCer ?? fallback} | ${s.meanCodeSwitchPreservation ?? fallback} |`;
     },
   )

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { spawn, spawnSync } from "node:child_process";
-import { convertToPcm16Mono16k, chunkPcm16, AudioConversionError } from "@/lib/speech/audio-conversion";
+import { convertToPcm16Mono16k, chunkPcm16, tryExtractPcm16Mono16kWav, AudioConversionError } from "@/lib/speech/audio-conversion";
 
 const hasFfmpeg = (() => {
   try {
@@ -10,6 +10,63 @@ const hasFfmpeg = (() => {
     return false;
   }
 })();
+
+function createSyntheticWav(sampleRate: number, numChannels: number, bitsPerSample: number, pcmData: Buffer): Buffer {
+  const byteRate = (sampleRate * numChannels * bitsPerSample) / 8;
+  const blockAlign = (numChannels * bitsPerSample) / 8;
+  const header = Buffer.alloc(44);
+
+  header.write("RIFF", 0);
+  header.writeUInt32LE(36 + pcmData.length, 4);
+  header.write("WAVE", 8);
+  header.write("fmt ", 12);
+  header.writeUInt32LE(16, 16);
+  header.writeUInt16LE(1, 20); // PCM
+  header.writeUInt16LE(numChannels, 22);
+  header.writeUInt32LE(sampleRate, 24);
+  header.writeUInt32LE(byteRate, 28);
+  header.writeUInt16LE(blockAlign, 32);
+  header.writeUInt16LE(bitsPerSample, 34);
+  header.write("data", 36);
+  header.writeUInt32LE(pcmData.length, 40);
+
+  return Buffer.concat([header, pcmData]);
+}
+
+describe("tryExtractPcm16Mono16kWav", () => {
+  it("extracts raw PCM samples from a canonical 16kHz 16-bit mono WAV", () => {
+    const rawPcm = Buffer.alloc(3200, 42); // 0.1s of audio
+    const wav = createSyntheticWav(16000, 1, 16, rawPcm);
+    const extracted = tryExtractPcm16Mono16kWav(wav);
+    expect(extracted).not.toBeNull();
+    expect(extracted?.length).toBe(3200);
+    expect(extracted?.[0]).toBe(42);
+  });
+
+  it("returns null for non-16kHz WAV audio", () => {
+    const rawPcm = Buffer.alloc(8820, 0); // 44.1kHz
+    const wav = createSyntheticWav(44100, 1, 16, rawPcm);
+    expect(tryExtractPcm16Mono16kWav(wav)).toBeNull();
+  });
+
+  it("returns null for stereo WAV audio", () => {
+    const rawPcm = Buffer.alloc(6400, 0); // stereo
+    const wav = createSyntheticWav(16000, 2, 16, rawPcm);
+    expect(tryExtractPcm16Mono16kWav(wav)).toBeNull();
+  });
+
+  it("returns null for arbitrary non-WAV bytes", () => {
+    expect(tryExtractPcm16Mono16kWav(Buffer.from("not audio at all"))).toBeNull();
+  });
+
+  it("convertToPcm16Mono16k resolves directly on 16kHz mono WAV without ffmpeg", async () => {
+    const rawPcm = Buffer.alloc(1600, 99);
+    const wav = createSyntheticWav(16000, 1, 16, rawPcm);
+    const result = await convertToPcm16Mono16k(wav);
+    expect(result.length).toBe(1600);
+    expect(result[0]).toBe(99);
+  });
+});
 
 function generateTestWebm(durationSeconds: number): Promise<Buffer> {
   return new Promise((resolve, reject) => {

@@ -3,354 +3,354 @@
     {
       "sampleId": "vl-001",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-002",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-003",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-004",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-005",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-006",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-007",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-008",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-009",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-010",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-011",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-012",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-013",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-014",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-015",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-016",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-017",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-018",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-019",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-020",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-021",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-022",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-023",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-024",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-025",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-026",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-027",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-028",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-029",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-030",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-031",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-032",
       "providerName": "sahara",
-      "status": "local_device_test_required",
+      "status": "audio_dataset_required",
       "wer": null,
       "cer": null,
       "codeSwitchPreservation": null,
       "lexicalOverlap": null,
       "latencyMs": null,
-      "errorMessage": "No physical audio recording on disk for this sample (LOCAL_DEVICE_TEST_REQUIRED)."
+      "errorMessage": "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
     },
     {
       "sampleId": "vl-001",

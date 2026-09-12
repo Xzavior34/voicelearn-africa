@@ -39,9 +39,9 @@ lib/
   speech/
     types.ts             — SpeechProvider interface, AudioInput, SpeechResult, SpeechProviderError, ProviderHealthResult
     registry.ts           — provider registry + PRIMARY_PROVIDER
-    audio-conversion.ts   — ffmpeg-backed conversion of browser audio to PCM16/16kHz/mono for Sahara
+    audio-conversion.ts   — dual-mode audio conversion: native pure-JS PCM extraction for 16kHz mono WAV, and ffmpeg transcoding for browser WebM/Opus
     providers/
-      sahara.ts           — primary provider; real wss://infer.voice.intron.io/stt/v1/stream streaming contract (REQUIRES_API_ACCESS — no key in this env)
+      sahara.ts           — primary provider; real wss://infer.voice.intron.io/stt/v1/stream streaming contract (live authentication & protocol verified)
       model-b.ts          — comparison provider (REQUIRES_API_ACCESS)
       model-c.ts          — comparison provider (REQUIRES_API_ACCESS)
       generic-rest-provider.ts — shared factory for model-b/model-c
@@ -70,13 +70,13 @@ components/
 scripts/
   run-benchmark.ts         — `npm run benchmark` entry point
 
-__tests__/                 — 39 unit/integration tests (vitest)
+__tests__/                 — 49 unit/integration tests (vitest: 47 passed, 2 host-ffmpeg dependent skipped)
 ```
 
 ## Why this separation
 
 - **Speech vs. tutor**: any speech provider can be swapped without touching tutor logic, and the
-  tutor pipeline can be fully tested (and was — 39 passing tests) without ever calling a live
+  tutor pipeline can be fully tested (and was — 47 passing tests) without ever calling a live
   speech API, because it operates on plain transcript strings.
 - **Four tutor stages, not one giant prompt/function**: each of intent extraction, reasoning,
   assessment, and adaptation is independently testable and independently replaceable (e.g. an

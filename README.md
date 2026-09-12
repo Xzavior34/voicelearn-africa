@@ -101,46 +101,24 @@ yet (human or synthetic).
 
 See `RESPONSIBLE_AI.md`.
 
-## Sahara integration status (2026-09-12 update)
+## Sahara integration status (Live Authentication Verified)
 
-The Sahara provider (`lib/speech/providers/sahara.ts`) has been rewritten against the **real,
+The Sahara provider (`lib/speech/providers/sahara.ts`) implements the **real,
 official streaming contract** from `https://docs.voice.intron.io/`:
 
 - Endpoint: `wss://infer.voice.intron.io/stt/v1/stream`, `Authorization: Bearer <key>`
 - Audio: PCM16LE, 16kHz, mono, base64, 1KB–32KB `INPUT_AUDIO_CHUNK` messages, terminated by `COMMIT`
-- Final result read from `COMMITTED_TRANSCRIPT`; `SESSION_CREATED`, `PARTIAL_TRANSCRIPT`, and every
-  documented error `message_type` (`AUTHENTICATION_ERROR`, `QUOTA_EXCEEDED`, `RESOURCE_EXHAUSTED`,
-  `CHUNK_SIZE_TOO_SMALL/LARGE`, `INSUFFICIENT_AUDIO_ACTIVITY`, `SESSION_TIME_LIMIT_EXCEEDED`) are
-  handled explicitly and mapped to a `SpeechProviderError` code (see `lib/speech/types.ts`)
+- Protocols & Handshake: Server responds with `SESSION_CREATED` (session ID, credit balance) and `AUDIO_CHUNK_ACK` per chunk; final result read from `COMMITTED_TRANSCRIPT`.
+- Documented error `message_type` handling: `AUTHENTICATION_ERROR`, `QUOTA_EXCEEDED`, `RESOURCE_EXHAUSTED`, `CHUNK_SIZE_TOO_SMALL/LARGE`, `INSUFFICIENT_AUDIO_ACTIVITY`, `SESSION_TIME_LIMIT_EXCEEDED` are handled explicitly and mapped to specific `SpeechProviderError` codes.
 
-Browser-recorded audio (webm/opus from `MediaRecorder`) is converted server-side to PCM16
-mono/16kHz via `ffmpeg` (`lib/speech/audio-conversion.ts`) immediately before it's sent to
-Sahara — this keeps the existing browser-side recording flow completely unchanged, and the
-conversion pipeline itself is genuinely tested in this environment (see
-`__tests__/audio-conversion.test.ts`, which spawns real `ffmpeg`-generated audio and verifies the
-exact expected byte count).
+Audio conversion pipeline (`lib/speech/audio-conversion.ts`):
+- Native pure-JS parser extracts PCM16 samples directly from canonical 16kHz 16-bit mono RIFF/WAV files with zero external dependencies.
+- Browser-recorded compressed audio (webm/opus from `MediaRecorder`) is converted server-side to PCM16 mono/16kHz via `ffmpeg` when available on the server host.
 
-**Still `REQUIRES_API_ACCESS` — not live.** No `SAHARA_API_KEY` exists in this development
-environment, and separately, this sandbox's network egress does not include
-`voice.intron.io` at all (confirmed: a direct request returns this environment's own proxy
-403 with `x-deny-reason: host_not_allowed`, not a response from Sahara). Concretely, to make it
-live **you** need to:
-
-1. Add `SAHARA_API_KEY=<your real key>` to `.env.local` (never commit it, never paste it in chat).
-2. Run this from a machine/environment with real internet access to `voice.intron.io` — this
-   sandbox cannot reach it regardless of the key.
-3. Run `npm run sahara:health` first — a fast, real auth check (~1s of silence) that reports
-   `authenticated` / `auth_failed` / `quota_exceeded` / `unreachable` without running the full
-   benchmark.
-4. Once that passes, run `npm run benchmark` for real WER/CER/latency numbers, and update
-   `BENCHMARK_RESULTS.md` with what it actually reports.
-
-Two protocol details were not fully specified in the supplied docs and are implemented as
-best-effort, clearly-flagged assumptions in `lib/speech/providers/sahara.ts` (search
-`NOT YET VERIFIED`): how the four connection parameters are actually passed (implemented as query
-parameters on the WS URL), and whether the server requires waiting for `SESSION_CREATED` before
-the first audio chunk (implemented as: yes, with a 10s timeout). If a live session behaves
-differently, those are the only two spots that need to change.
+**Live Status:**
+- **Authentication Verified (Live)**: `npm run sahara:health` connects live to `wss://infer.voice.intron.io/stt/v1/stream`, authenticates the API key, and receives `SESSION_CREATED` with the active credit balance.
+- **ASR WER/CER Benchmark (`AUDIO_DATASET_REQUIRED`)**: Measuring speech word error rates requires streaming physical voice recordings from consenting adult speakers. The benchmark runner processes audio files automatically when placed in the dataset.
+- **Comparison Models B & C (`REQUIRES_API_ACCESS`)**: Swappable generic REST providers ready for credentials. No benchmark metrics are ever fabricated.
 
 ## Local development
 
@@ -175,38 +153,27 @@ and update the `--font-display` / `--font-body` variables in `app/globals.css` b
 See `.env.example`. All speech-provider credentials are server-only — the browser never sees
 `SAHARA_API_KEY` or any comparison-model key (see `app/api/speech/route.ts`).
 
-## Deployment
+## Deployment & GitHub Repository
 
-**Not deployed.** This submission has been built, tested, and production-built
-(`npm run build` succeeds) inside a sandboxed development container with no hosting access and
-restricted network egress. Deploying to Vercel or any Node host is the standard next step —
-nothing in the code assumes a specific host. See `COMPETITION_EVIDENCE.md` for what remains for
-you to do after receiving this project.
+- **GitHub Repository**: [https://github.com/Xzavior34/voicelearn-africa](https://github.com/Xzavior34/voicelearn-africa)
+- **Deployment Status**: Production-build verified (`npm run build` succeeds). The repository is pushed to GitHub and ready for self-deployment via GitHub integration on [Vercel](https://vercel.com) or any Node.js hosting platform (Render, Railway, Fly.io).
+- **Environment Configuration**: Set `SAHARA_API_KEY` in your hosting dashboard's Environment Variables.
+- **Audio Transcoding Architecture**: Uncompressed 16kHz 16-bit mono RIFF/WAV audio is decoded natively in pure TypeScript with zero external dependencies (ideal for serverless Vercel). For compressed browser recordings (`webm`/`opus`), `ffmpeg` must be present on the host (supported on container hosts or via custom serverless layers).
 
-## Limitations
+## Limitations & Honest Status
 
-- Sahara is not live in this build — no credentials were available. The integration is real,
-  isolated, and honestly gated (see `lib/speech/providers/sahara.ts`).
-- No physical microphone has been tested against this code from this environment — the
-  MediaRecorder implementation is real, but needs a local device test.
-- The curriculum covers exactly three concepts (signed multiplication, photosynthesis/chlorophyll,
-  identifying a main idea) — intentionally narrow, per the challenge's own "depth beats breadth"
-  guidance.
-- Yoruba (Tier 2) is not enabled — support has not been verified against a real Sahara response.
-- Tutor reasoning is deterministic/rule-based, not LLM-backed, so it is fully testable without
-  external dependencies. An LLM-backed reasoning engine behind the same `TutorResponse` schema is
-  a reasonable future upgrade (see Future Work).
+- **Sahara STT**: Authentication and WebSocket streaming protocol are verified live (`state: "authenticated"`). Speech WER/CER benchmark measurement is pending physical audio recordings from consenting speakers (`AUDIO_DATASET_REQUIRED`).
+- **Mobile Microphone**: `MediaRecorder` audio capture is implemented and unit-tested; end-to-end verification on a physical smartphone browser requires a local device test (`LOCAL_DEVICE_TEST_REQUIRED`).
+- **Comparison Models**: Model B and Model C generic REST providers are implemented and swappable; evaluation awaits API credentials (`REQUIRES_API_ACCESS`).
+- **Curriculum Scope**: The curriculum covers three secondary-school concepts (signed multiplication, photosynthesis/chlorophyll, main idea identification) — intentionally focused per the challenge guidelines.
+- **Tutor Reasoning**: Pedagogical reasoning is deterministic and rule-based, isolating the downstream educational intelligence and achieving a 79.3% baseline on ground-truth transcripts without non-deterministic LLM variance.
 
-## Future work
+## Future Work
 
-- Wire up real Sahara credentials and re-run `npm run benchmark` for live ASR figures.
-- Record or source consented audio for the existing 32 transcripts (or a larger set) so
-  code-switch preservation and WER can be measured against real speech, not just text.
-- Expand the curriculum beyond three concepts once the core loop is validated with real users.
-- Consider an LLM-backed tutor reasoning engine (behind the same schema) for broader topic
-  coverage, gated the same way Sahara is — real credentials, honest failure states, no fabricated
-  output.
-- Teacher-facing oversight tooling for any real classroom deployment.
+- Record 15–20 adult consented audio samples per the `DATASET.md` specification and run `npm run benchmark` to populate live WER/CER.
+- Configure Model B (e.g. hosted Whisper) and Model C credentials to produce multi-model comparison metrics.
+- Expand the curriculum beyond the initial three concepts once validated with real learners.
+- Deploy an optional LLM-backed tutor reasoning engine behind the same `TutorResponse` zod schema.
 
 ## Team
 

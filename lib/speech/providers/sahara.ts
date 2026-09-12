@@ -79,6 +79,7 @@ function assertConfigured(): { wsUrl: string; apiKey: string } {
 
 type SaharaMessage =
   | { message_type: "SESSION_CREATED"; [k: string]: unknown }
+  | { message_type: "AUDIO_CHUNK_ACK"; ack_id?: number; [k: string]: unknown }
   | { message_type: "PARTIAL_TRANSCRIPT"; transcript_text?: string; [k: string]: unknown }
   | { message_type: "COMMITTED_TRANSCRIPT"; transcript_id: string; transcript_text: string; audio_len: number }
   | { message_type: "ERROR" | "INPUT_ERROR"; error?: string; message?: string; [k: string]: unknown }
@@ -202,6 +203,9 @@ function runSaharaSession(
         case "SESSION_CREATED":
           if (sessionCreatedTimer) clearTimeout(sessionCreatedTimer);
           sendAudioChunksThenCommit();
+          return;
+        case "AUDIO_CHUNK_ACK":
+          // Server acknowledged receipt of audio chunk.
           return;
         case "PARTIAL_TRANSCRIPT":
           // Tracked for potential future streaming UI use; the
