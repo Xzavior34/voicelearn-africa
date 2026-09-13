@@ -1,47 +1,53 @@
 @import "tailwindcss";
 
 :root {
-  /* Surface & Canvas (warm ivory paper) */
-  --paper: #faf8f5;
-  --paper-card: #ffffff;
-  --paper-elevated: #f4ede3;
-  --paper-subtle: #f1ebe0;
+  /* Surface & Canvas — deep midnight navy, not paper */
+  --paper: #070a14;
+  --paper-card: #0d1222;
+  --paper-elevated: #11182b;
+  --paper-subtle: #0b0f1d;
 
-  /* Typography & Text */
-  --ink: #1c1917;
-  --ink-soft: #524b45;
-  --ink-muted: #85796f;
-  --ink-light: #ada192;
+  /* Typography & Text — near-white down to slate-blue */
+  --ink: #f1f3fa;
+  --ink-soft: #b7bfda;
+  --ink-muted: #8890ac;
+  --ink-light: #565f7e;
 
-  /* Primary Identity: deep ink-indigo */
-  --indigo: #23294f;
-  --indigo-dark: #171b38;
-  --indigo-soft: #3d4677;
-  --indigo-light: #eef0f9;
-  --indigo-border: #d8ddf3;
+  /* Primary identity: electric indigo */
+  --indigo: #6366f1;
+  --indigo-dark: #4338ca;
+  --indigo-soft: #818cf8;
+  --indigo-light: #1b1f3b;
+  --indigo-border: #33396b;
 
-  /* Warm accent: terracotta / ochre, used sparingly */
-  --ochre: #b8631f;
-  --ochre-warm: #d3762a;
-  --ochre-light: #fbf3ea;
-  --ochre-border: #f0ddc4;
-  --terracotta: #9c4025;
+  /* Secondary accent: violet (was the warm terracotta/ochre role) */
+  --ochre: #8b5cf6;
+  --ochre-warm: #a78bfa;
+  --ochre-light: #221a3d;
+  --ochre-border: #3d2e66;
+  --terracotta: #7c3aed;
 
-  /* Botanical green: verified / correct states */
-  --leaf: #1f6b48;
-  --leaf-dark: #144e34;
-  --leaf-light: #eaf5ef;
-  --leaf-border: #c1e2d0;
+  /* Voice/activity accent: cyan — reserved for live listening state */
+  --cyan: #22d3ee;
+  --cyan-soft: #67e8f9;
+  --cyan-light: #0b2530;
+  --cyan-border: #164452;
 
-  /* Muted rust: misconceptions & alerts */
-  --rust: #a8392c;
-  --rust-light: #fbf0ee;
-  --rust-border: #edc8c2;
+  /* Success / verified states: emerald */
+  --leaf: #34d399;
+  --leaf-dark: #10b981;
+  --leaf-light: #10241c;
+  --leaf-border: #1c4a38;
 
-  /* Structure & Borders */
-  --line: #e4dcd0;
-  --line-subtle: #eee7dc;
-  --line-dark: #cabfae;
+  /* Error / misconceptions: coral */
+  --rust: #fb7185;
+  --rust-light: #2b1418;
+  --rust-border: #4a2028;
+
+  /* Structure & borders — translucent hairlines on dark surfaces */
+  --line: rgba(255, 255, 255, 0.1);
+  --line-subtle: rgba(255, 255, 255, 0.06);
+  --line-dark: rgba(255, 255, 255, 0.18);
 }
 
 @theme inline {
@@ -67,6 +73,11 @@
   --color-ochre-border: var(--ochre-border);
   --color-terracotta: var(--terracotta);
 
+  --color-cyan: var(--cyan);
+  --color-cyan-soft: var(--cyan-soft);
+  --color-cyan-light: var(--cyan-light);
+  --color-cyan-border: var(--cyan-border);
+
   --color-leaf: var(--leaf);
   --color-leaf-dark: var(--leaf-dark);
   --color-leaf-light: var(--leaf-light);
@@ -80,15 +91,21 @@
   --color-line-subtle: var(--line-subtle);
   --color-line-dark: var(--line-dark);
 
-  /* Editorial serif for display type, quiet system sans for body/UI */
-  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, "Times New Roman", serif;
-  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, Helvetica, Arial, sans-serif;
+  /* A strong modern sans-serif system stack for both display and body —
+     deliberately not the previous serif, which read as documentation/
+     editorial rather than an AI product. Uses system-installed fonts
+     only (no next/font/google) so the build never depends on network
+     access to a font CDN; swapping in a webfont like Inter/Geist later
+     is a one-line change here. */
+  --font-display: -apple-system, "Segoe UI", "Inter", system-ui, Roboto, Helvetica, Arial, sans-serif;
+  --font-body: -apple-system, "Segoe UI", "Inter", system-ui, Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 }
 
 html {
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
+  color-scheme: dark;
 }
 
 body {
@@ -100,9 +117,9 @@ body {
 }
 
 h1, h2, h3, .font-display {
-  font-family: var(--font-display), Georgia, serif;
-  letter-spacing: -0.011em;
-  font-weight: 500;
+  font-family: var(--font-display), system-ui, sans-serif;
+  letter-spacing: -0.022em;
+  font-weight: 600;
 }
 
 /* Comfortable reading measure for prose blocks */
@@ -202,6 +219,18 @@ h1, h2, h3, .font-display {
 }
 .orb-spin-slow {
   animation: orb-spin-slow 3.6s linear infinite;
+}
+
+/* Ambient background glow — a very slow, subtle drift for the fixed
+   depth layer behind every page. Purely decorative (aria-hidden),
+   GPU-cheap (transform + opacity only, no layout/paint-triggering
+   properties), and never interactive (pointer-events: none). */
+@keyframes ambient-drift {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(1.5%, -1.5%, 0) scale(1.04); }
+}
+.animate-ambient-drift {
+  animation: ambient-drift 26s ease-in-out infinite;
 }
 
 /* Reduced Motion Override */

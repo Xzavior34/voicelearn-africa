@@ -90,6 +90,24 @@ export default async function BenchmarkPage() {
           This is one data point, not a dataset-wide result &mdash; we show it because it is real
           and reproducible, and we&apos;re explicit that it is only one recording.
         </p>
+
+        {/* The evidence chain itself, shown as a flow rather than a table row */}
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-3 py-2" aria-label="Evidence pipeline: voice sample through Sahara to tutor response">
+          {["Voice sample", "Sahara", "Transcript", "Learning intent", "Tutor response"].map((stage, i, arr) => (
+            <div key={stage} className="flex items-center gap-2">
+              <span className="rounded-full border border-indigo-border bg-indigo-light px-3 py-1.5 text-xs font-medium text-indigo-soft whitespace-nowrap">
+                {stage}
+              </span>
+              {i < arr.length - 1 && (
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-ink-light shrink-0" aria-hidden="true">
+                  <path d="M5 12h14" />
+                  <path d="m12 5 7 7-7 7" />
+                </svg>
+              )}
+            </div>
+          ))}
+        </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 text-sm">
           <div>
             <p className="font-display text-xl text-ink font-medium">3.6%</p>

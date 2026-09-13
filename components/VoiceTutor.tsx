@@ -3,7 +3,8 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useSpeechRecorder } from "@/lib/client/useSpeechRecorder";
 import { createTurnGuard } from "@/lib/client/turnGuard";
-import { VoiceOrb, VoiceOrbState, voiceOrbStatusLabel } from "@/components/VoiceOrb";
+import { deriveLearningStage, LearningStage } from "@/lib/client/learningStage";
+import { VoiceOrb, VoiceOrbState } from "@/components/VoiceOrb";
 import { LearningSession, TutorResponse, AssessmentResult, createInitialSession } from "@/lib/tutor/schema";
 
 type Phase =
@@ -43,7 +44,7 @@ const CURATED_PROMPTS = [
   },
 ];
 
-export default function VoiceTutor() {
+export default function VoiceTutor({ initialPrompt }: { initialPrompt?: string } = {}) {
   const recorder = useSpeechRecorder();
   const [phase, setPhase] = useState<Phase>("idle");
   const [session, setSession] = useState<LearningSession>(createInitialSession());
@@ -156,6 +157,18 @@ export default function VoiceTutor() {
     [session],
   );
 
+  // If the learner arrived from a homepage "try asking" example
+  // (?prompt=...), submit it automatically exactly once — this is the
+  // one real, functional path from the homepage's tappable examples
+  // into the actual product, not just a decorative link.
+  const hasSubmittedInitialPromptRef = useRef(false);
+  useEffect(() => {
+    if (!initialPrompt || hasSubmittedInitialPromptRef.current) return;
+    hasSubmittedInitialPromptRef.current = true;
+    submitTranscript(initialPrompt);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPrompt]);
+
   const submitAudio = useCallback(
     async (blob: Blob) => {
       setPhase("processing_speech");
@@ -219,33 +232,53 @@ export default function VoiceTutor() {
   const isBusy = phase === "processing_speech" || phase === "processing_tutor";
   const isRecording = recorder.status === "recording";
 
-  // Derive the orb's visual state purely from real app/recorder state —
-  // no invented states, no fake "listening" outside actual recording.
-  const orbState: VoiceOrbState =
-    phase === "tutor_failed" || recorder.status === "error" || recorder.status === "permission_denied"
-      ? "error"
-      : isRecording
-        ? "listening"
-        : isBusy
-          ? "processing"
-          : history.length === 0
-            ? "idle"
-            : "ready";
+  // The single source of truth for "what learning moment is this" —
+  // derived from the same real phase/recorder/session state as
+  // everything else (see lib/client/learningStage.ts), not a second
+  // competing state machine.
+  const stage: LearningStage = deriveLearningStage({
+    phase,
+    recorderStatus: recorder.status,
+    historyLength: history.length,
+    isFollowUp,
+    latestAssessmentOutcome: latestTurn?.assessment?.outcome ?? null,
+    latestHasTutorResponse: latestTurn ? latestTurn.tutorResponse != null : undefined,
+  });
+
+  const STAGE_TO_ORB: Record<LearningStage, VoiceOrbState> = {
+    curious: "idle",
+    listening: "listening",
+    understanding: "processing",
+    teaching: "practice",
+    assessing: "assessing",
+    success: "success",
+    retry: "practice",
+    error: "error",
+  };
+  const orbState = STAGE_TO_ORB[stage];
+
+  const STAGE_HEADLINE: Partial<Record<LearningStage, string>> = {
+    listening: "Listening",
+    understanding: "Understanding you",
+    assessing: "Checking your thinking",
+    teaching: "Let's break this down",
+    success: "You got it",
+    retry: "Almost — let's look at it another way",
+  };
 
   return (
     <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col gap-8">
-      {/* Quiet status line, not a dashboard header */}
+      {/* Minimal session indicator — not "Step 3 of 10", just a quiet sense of being inside a session */}
       <div className="flex items-center justify-between text-xs text-ink-muted">
-        <span>
-          {session.topic ? (
-            <span>
-              <strong className="text-ink font-medium">{session.topic}</strong>
-              <span className="mx-1.5">&middot;</span>
-              Level {session.difficulty} of 5
+        <span className="inline-flex items-center gap-2">
+          {history.length > 0 && (
+            <span className="flex items-center gap-1" aria-hidden="true">
+              {Array.from({ length: Math.min(history.length, 5) }).map((_, i) => (
+                <span key={i} className="h-1.5 w-1.5 rounded-full bg-indigo-soft" />
+              ))}
             </span>
-          ) : (
-            "Ask anything you're learning about"
           )}
+          <span>Learning session</span>
         </span>
         {history.length > 0 && (
           <button
@@ -258,8 +291,29 @@ export default function VoiceTutor() {
         )}
       </div>
 
-      {/* Voice console */}
+      {/* The dominant learning moment — the environment IS the page, not a
+          panel inside it. Everything below responds to `stage`. */}
       <div className="flex flex-col items-center justify-center gap-5 text-center py-6">
+        {stage === "curious" && (
+          <div className="flex flex-col items-center gap-2 -mb-1">
+            <h1
+              className="font-display text-ink font-semibold tracking-tight leading-[1.05]"
+              style={{ fontSize: "clamp(1.75rem, 5vw, 3.25rem)" }}
+            >
+              What are you <span className="text-indigo-soft">curious</span> about?
+            </h1>
+            <p className="text-sm sm:text-base text-ink-soft max-w-sm">
+              Ask anything. Speak naturally — mix languages if that&apos;s how you think.
+            </p>
+          </div>
+        )}
+
+        {STAGE_HEADLINE[stage] && stage !== "curious" && (
+          <h2 className="font-display text-xl sm:text-2xl text-ink font-semibold tracking-tight -mb-1" aria-hidden="true">
+            {phase === "processing_speech" ? "Listening complete" : STAGE_HEADLINE[stage]}
+          </h2>
+        )}
+
         <button
           type="button"
           onClick={handleMicPress}
@@ -274,7 +328,11 @@ export default function VoiceTutor() {
           }
           className="rounded-full active:scale-95 transition-transform duration-150 focus-visible:outline-2 focus-visible:outline-indigo focus-visible:outline-offset-4"
         >
-          <VoiceOrb state={orbState} audioLevel={isRecording ? recorder.audioLevel : 0} size={96} />
+          <VoiceOrb
+            state={orbState}
+            audioLevel={isRecording ? recorder.audioLevel : 0}
+            size="clamp(180px, 42vw, 320px)"
+          />
         </button>
 
         {/* Live status: elapsed time while listening (the waveform itself now lives inside the orb) */}
@@ -284,18 +342,50 @@ export default function VoiceTutor() {
           </span>
         )}
 
+        {/* The single accessible source of truth for the current state —
+            screen readers get this even where the heading above is
+            aria-hidden to avoid redundant announcements. */}
         <div className="space-y-1 max-w-sm" aria-live="polite">
           <p className="text-sm sm:text-base font-medium text-ink">
-            {voiceOrbStatusLabel(orbState)}
+            {phase === "processing_speech"
+              ? "Listening complete"
+              : stage === "curious"
+                ? "Tap and speak"
+                : (STAGE_HEADLINE[stage] ?? "Tap and speak")}
           </p>
           <p className="text-xs text-ink-muted">
             {isRecording
-              ? "Speak naturally. You can mix languages."
-              : isFollowUp
-                ? "Your answer will be checked for understanding."
-                : "Try mathematics, science, or an English comprehension question."}
+              ? "Speak naturally. I'm listening."
+              : stage === "understanding"
+                ? "Finding the clearest way to explain it."
+                : stage === "assessing"
+                  ? "Give me a second…"
+                  : stage === "teaching" || stage === "retry"
+                    ? "Your turn — tap the orb to answer."
+                    : isFollowUp
+                      ? "Your answer will be checked for understanding."
+                      : "Try mathematics, science, or an English comprehension question."}
           </p>
         </div>
+
+        {stage === "success" && (
+          <div className="flex items-center gap-3 pt-1">
+            <button
+              type="button"
+              onClick={handleMicPress}
+              className="rounded-full bg-indigo text-paper px-5 py-2.5 text-sm font-medium hover:bg-indigo-soft transition-colors min-h-[44px]"
+            >
+              Continue
+            </button>
+            <button
+              type="button"
+              onClick={resetSession}
+              className="text-sm text-ink-muted hover:text-ink font-medium px-3 py-2.5 min-h-[44px] inline-flex items-center"
+            >
+              Ask something else
+            </button>
+          </div>
+        )}
 
         {recorder.errorMessage && (
           <p role="alert" className="text-xs text-rust max-w-xs">
@@ -349,42 +439,43 @@ export default function VoiceTutor() {
         <p role="alert" className="text-xs text-rust text-center">{systemNote}</p>
       )}
 
-      {/* Empty state: curated starters */}
-      {history.length === 0 && phase === "idle" && (
-        <div className="flex flex-col gap-3 pt-2 section-divide border-t border-line">
-          <p className="text-xs uppercase tracking-wider text-ink-muted font-semibold pt-4">
-            Or try one of these
-          </p>
-          <div className="flex flex-col divide-y divide-line/70">
+      {/* Empty state: tappable conversation starters — pills, not cards */}
+      {stage === "curious" && !showManualInput && phase !== "speech_unavailable" && (
+        <div className="flex flex-col items-center gap-3">
+          <p className="text-xs text-ink-muted">or try an example below</p>
+          <div className="flex flex-wrap justify-center gap-2">
             {CURATED_PROMPTS.map((item) => (
               <button
                 key={item.topic}
                 type="button"
                 onClick={() => submitTranscript(item.prompt)}
-                className="text-left py-3 flex items-center justify-between gap-4 group"
+                className="rounded-full border border-line bg-paper-card/60 px-4 py-2.5 text-xs sm:text-sm text-ink-soft hover:text-ink hover:border-indigo-border hover:bg-indigo-light transition-colors"
               >
-                <div>
-                  <p className="text-sm text-ink group-hover:text-indigo transition-colors italic">
-                    &ldquo;{item.prompt}&rdquo;
-                  </p>
-                  <p className="text-xs text-ink-muted mt-0.5">{item.subject} &middot; {item.topic}</p>
-                </div>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-ink-muted group-hover:text-indigo shrink-0 transition-colors" aria-hidden="true">
-                  <path d="M5 12h14" />
-                  <path d="m12 5 7 7-7 7" />
-                </svg>
+                &ldquo;{item.prompt}&rdquo;
               </button>
             ))}
           </div>
         </div>
       )}
 
-      {/* Conversation stream */}
-      <div ref={turnContainerRef} className="flex flex-col gap-8" aria-live="polite" aria-atomic="false">
-        {history.map((turn, index) => (
-          <TurnBlock key={turn.id || index} turn={turn} isLast={index === history.length - 1} />
-        ))}
-      </div>
+      {/* The current learning moment — dominant, not a chat bubble wall */}
+      {latestTurn && (
+        <div ref={turnContainerRef} aria-live="polite" aria-atomic="false">
+          <CurrentMoment
+            key={latestTurn.id}
+            turn={latestTurn}
+            topic={session.topic}
+            difficulty={session.difficulty}
+          />
+        </div>
+      )}
+
+      {/* Lesson trail — a compact record of what happened, not a
+          transcript. Deliberately terse: "You asked" / "You practiced" /
+          "You learned", not repeated chat bubbles. */}
+      {history.length > 1 && (
+        <LessonTrail turns={history.slice(0, -1)} />
+      )}
 
       {latestTurn && latestTurn.tutorResponse == null && (
         <p className="text-sm text-ink-soft" role="status">
@@ -403,63 +494,110 @@ export default function VoiceTutor() {
   );
 }
 
-function TurnBlock({ turn, isLast }: { turn: TurnLog; isLast: boolean }) {
+function CurrentMoment({
+  turn,
+  topic,
+  difficulty,
+}: {
+  turn: TurnLog;
+  topic: string;
+  difficulty: number;
+}) {
   const showLanguageNote = turn.languageNote && turn.languageNote !== "Standard English";
 
   return (
-    <div className={`flex flex-col gap-4 ${isLast ? "animate-fade-in" : ""}`}>
-      {/* Learner message */}
-      <div className="flex justify-end">
-        <div className="max-w-[85%] flex flex-col items-end gap-1">
-          <p className="rounded-2xl rounded-tr-sm bg-indigo text-paper px-4 py-2.5 text-sm sm:text-base leading-relaxed">
-            {turn.transcript}
-          </p>
-          {showLanguageNote && (
-            <span className="text-[11px] text-ink-muted pr-1">{turn.languageNote}</span>
-          )}
-        </div>
+    <div className="flex flex-col gap-5 animate-fade-in">
+      {/* You asked — a learner statement, not a chat bubble */}
+      <div className="flex flex-col items-center text-center gap-1.5">
+        <p className="text-xs uppercase tracking-wider text-ink-muted font-semibold">You asked</p>
+        <p className="text-base sm:text-lg text-ink leading-relaxed max-w-lg">
+          &ldquo;{turn.transcript}&rdquo;
+        </p>
+        {showLanguageNote && (
+          <span className="text-[11px] text-ink-muted">{turn.languageNote} — you don&apos;t have to change how you speak to ask.</span>
+        )}
       </div>
 
-      {/* Assessment (when this turn answers a follow-up) — icon + text + color, so
-          correctness is never communicated by color alone. */}
+      {/* Assessment feedback (when this turn answered a pending question) */}
       {turn.assessment && (
-        <div className="flex justify-end">
+        <div className="flex flex-col items-center text-center gap-1">
           <p
-            className={`max-w-[85%] flex items-start gap-1.5 text-xs sm:text-sm leading-relaxed pr-1 ${
+            className={`inline-flex items-center gap-1.5 text-sm sm:text-base font-medium ${
               turn.assessment.outcome === "correct" ? "animate-success-settle" : ""
             } ${
               turn.assessment.outcome === "correct"
                 ? "text-leaf-dark"
                 : turn.assessment.outcome === "partially_correct"
-                  ? "text-ochre"
+                  ? "text-ochre-warm"
                   : turn.assessment.outcome === "incorrect_misconception"
                     ? "text-rust"
                     : "text-ink-soft"
             }`}
           >
             <AssessmentIcon outcome={turn.assessment.outcome} />
-            <span>{turn.assessment.feedback}</span>
+            {turn.assessment.feedback}
           </p>
         </div>
       )}
 
-      {/* Tutor explanation */}
+      {/* Teaching moment */}
       {turn.tutorResponse && (
-        <div className="flex flex-col gap-4 max-w-[92%]">
-          <div className="rounded-2xl rounded-tl-sm bg-paper-elevated px-4 py-3.5 text-sm sm:text-base text-ink leading-relaxed">
+        <div className="flex flex-col gap-5">
+          {topic && (
+            <p className="text-center text-xs text-ink-muted">
+              <strong className="text-ink-soft font-medium">{topic}</strong>
+              <span className="mx-1.5">&middot;</span>
+              Level {difficulty} of 5
+            </p>
+          )}
+
+          <div className="rounded-3xl border border-line bg-paper-card/50 px-5 py-5 sm:px-7 sm:py-6 text-sm sm:text-base text-ink leading-relaxed">
             {turn.tutorResponse.explanation}
           </div>
 
-          <div className="pl-4 border-l-2 border-ochre-border flex flex-col gap-1">
-            <p className="text-xs uppercase tracking-wider font-semibold text-ochre">Your turn</p>
-            <p className="text-sm sm:text-base text-ink font-medium leading-relaxed">
+          <div className="flex flex-col items-center text-center gap-2 pt-1">
+            <p className="text-xs uppercase tracking-[0.16em] font-semibold text-cyan">Your turn</p>
+            <p className="text-base sm:text-lg text-ink font-medium leading-relaxed max-w-lg">
               {turn.tutorResponse.followUpQuestion}
             </p>
-            <p className="text-[11px] text-ink-muted pt-0.5">Tap the microphone above to answer.</p>
+            <p className="text-[11px] text-ink-muted pt-1">Tap the orb above to answer.</p>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+function LessonTrail({ turns }: { turns: TurnLog[] }) {
+  return (
+    <details className="group text-xs text-ink-muted">
+      <summary className="cursor-pointer list-none inline-flex items-center gap-1.5 hover:text-ink-soft transition-colors py-2 min-h-[44px]">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="transition-transform group-open:rotate-90" aria-hidden="true">
+          <path d="m9 6 6 6-6 6" />
+        </svg>
+        Lesson trail &middot; {turns.length} {turns.length === 1 ? "moment" : "moments"}
+      </summary>
+      <div className="flex flex-col gap-2 pt-3 pl-[18px] border-l border-line ml-1">
+        {turns.map((turn, i) => (
+          <p key={turn.id || i} className="leading-relaxed">
+            {turn.assessment ? (
+              <>
+                <span className="text-ink-soft">You practiced —</span> {turn.transcript}
+              </>
+            ) : turn.tutorResponse ? (
+              <>
+                <span className="text-ink-soft">You asked —</span> {turn.transcript}
+              </>
+            ) : (
+              <>
+                <span className="text-ink-soft">You asked —</span> {turn.transcript}
+                <span className="text-ink-light"> (not in the current curriculum)</span>
+              </>
+            )}
+          </p>
+        ))}
+      </div>
+    </details>
   );
 }
 

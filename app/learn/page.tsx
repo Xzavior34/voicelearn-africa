@@ -5,6 +5,11 @@ export const metadata: Metadata = {
   title: "Learn — VoiceLearn Africa",
 };
 
-export default function LearnPage() {
-  return <VoiceTutor />;
+export default async function LearnPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ prompt?: string }>;
+}) {
+  const { prompt } = await searchParams;
+  return <VoiceTutor initialPrompt={prompt} />;
 }

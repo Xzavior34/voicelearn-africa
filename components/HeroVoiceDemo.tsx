@@ -38,8 +38,15 @@ export default function HeroVoiceDemo() {
   }, [reducedMotion]);
 
   return (
-    <div className="rounded-2xl border border-line bg-paper-card shadow-sm overflow-hidden">
-      <div className="px-5 sm:px-6 py-3.5 border-b border-line flex items-center justify-between gap-2 text-xs text-ink-muted">
+    <div className="relative rounded-3xl border border-line bg-paper-card/60 backdrop-blur-sm shadow-[0_20px_60px_-15px_rgba(99,102,241,0.25)] overflow-hidden">
+      {/* Ambient glow behind the orb, contained to this card only */}
+      <div
+        className="absolute top-0 left-1/2 -translate-x-1/2 h-64 w-64 rounded-full blur-[80px] opacity-30 pointer-events-none"
+        style={{ background: "radial-gradient(circle, var(--indigo) 0%, transparent 70%)" }}
+        aria-hidden="true"
+      />
+
+      <div className="relative px-5 sm:px-6 py-3.5 border-b border-line flex items-center justify-between gap-2 text-xs text-ink-muted">
         <span className="inline-flex items-center gap-2">
           <span className="h-2 w-2 rounded-full bg-leaf animate-idle-breathe" aria-hidden="true" />
           Learn console
@@ -47,8 +54,8 @@ export default function HeroVoiceDemo() {
         <span className="text-[10px] uppercase tracking-wider text-ink-light">Illustrative example</span>
       </div>
 
-      <div className="p-5 sm:p-6 flex flex-col items-center gap-5">
-        <VoiceOrb state={orbState} size={72} />
+      <div className="relative p-6 sm:p-8 flex flex-col items-center gap-6">
+        <VoiceOrb state={orbState} size={128} />
 
         <div className="w-full flex flex-col gap-3 min-h-[132px]">
           {revealStep >= 1 && (
