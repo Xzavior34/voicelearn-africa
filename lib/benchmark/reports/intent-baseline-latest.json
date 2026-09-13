@@ -1,0 +1,183 @@
+{
+  "perSample": [
+    {
+      "sampleId": "vl-001",
+      "expectedConceptId": "signed-multiplication",
+      "predictedConceptId": null,
+      "correct": false
+    },
+    {
+      "sampleId": "vl-002",
+      "expectedConceptId": "photosynthesis-chlorophyll",
+      "predictedConceptId": "photosynthesis-chlorophyll",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-003",
+      "expectedConceptId": "main-idea",
+      "predictedConceptId": "main-idea",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-004",
+      "expectedConceptId": null,
+      "predictedConceptId": null,
+      "correct": true
+    },
+    {
+      "sampleId": "vl-005",
+      "expectedConceptId": null,
+      "predictedConceptId": null,
+      "correct": true
+    },
+    {
+      "sampleId": "vl-006",
+      "expectedConceptId": "signed-multiplication",
+      "predictedConceptId": "signed-multiplication",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-007",
+      "expectedConceptId": null,
+      "predictedConceptId": null,
+      "correct": true
+    },
+    {
+      "sampleId": "vl-008",
+      "expectedConceptId": "photosynthesis-chlorophyll",
+      "predictedConceptId": "photosynthesis-chlorophyll",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-009",
+      "expectedConceptId": null,
+      "predictedConceptId": null,
+      "correct": true
+    },
+    {
+      "sampleId": "vl-010",
+      "expectedConceptId": "signed-multiplication",
+      "predictedConceptId": null,
+      "correct": false
+    },
+    {
+      "sampleId": "vl-011",
+      "expectedConceptId": "photosynthesis-chlorophyll",
+      "predictedConceptId": "photosynthesis-chlorophyll",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-012",
+      "expectedConceptId": "main-idea",
+      "predictedConceptId": "main-idea",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-013",
+      "expectedConceptId": null,
+      "predictedConceptId": null,
+      "correct": true
+    },
+    {
+      "sampleId": "vl-014",
+      "expectedConceptId": "photosynthesis-chlorophyll",
+      "predictedConceptId": "photosynthesis-chlorophyll",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-015",
+      "expectedConceptId": "signed-multiplication",
+      "predictedConceptId": "signed-multiplication",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-016",
+      "expectedConceptId": "main-idea",
+      "predictedConceptId": "main-idea",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-017",
+      "expectedConceptId": null,
+      "predictedConceptId": null,
+      "correct": true
+    },
+    {
+      "sampleId": "vl-018",
+      "expectedConceptId": "photosynthesis-chlorophyll",
+      "predictedConceptId": "photosynthesis-chlorophyll",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-019",
+      "expectedConceptId": "main-idea",
+      "predictedConceptId": "main-idea",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-020",
+      "expectedConceptId": "signed-multiplication",
+      "predictedConceptId": null,
+      "correct": false
+    },
+    {
+      "sampleId": "vl-021",
+      "expectedConceptId": "signed-multiplication",
+      "predictedConceptId": null,
+      "correct": false
+    },
+    {
+      "sampleId": "vl-022",
+      "expectedConceptId": "photosynthesis-chlorophyll",
+      "predictedConceptId": "photosynthesis-chlorophyll",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-023",
+      "expectedConceptId": "main-idea",
+      "predictedConceptId": null,
+      "correct": false
+    },
+    {
+      "sampleId": "vl-024",
+      "expectedConceptId": "signed-multiplication",
+      "predictedConceptId": "signed-multiplication",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-025",
+      "expectedConceptId": "photosynthesis-chlorophyll",
+      "predictedConceptId": "photosynthesis-chlorophyll",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-026",
+      "expectedConceptId": "main-idea",
+      "predictedConceptId": "main-idea",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-027",
+      "expectedConceptId": "signed-multiplication",
+      "predictedConceptId": null,
+      "correct": false
+    },
+    {
+      "sampleId": "vl-028",
+      "expectedConceptId": "photosynthesis-chlorophyll",
+      "predictedConceptId": "photosynthesis-chlorophyll",
+      "correct": true
+    },
+    {
+      "sampleId": "vl-029",
+      "expectedConceptId": "main-idea",
+      "predictedConceptId": "main-idea",
+      "correct": true
+    }
+  ],
+  "summary": {
+    "totalSamples": 29,
+    "correct": 23,
+    "accuracy": 0.7931034482758621
+  }
+}
