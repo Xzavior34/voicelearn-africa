@@ -45,18 +45,23 @@ export function createGenericRestProvider(
   }
 
   return {
+    id: name.toLowerCase().replace(/\s+/g, "-"),
     name,
+    model: name,
     isLive: Boolean(process.env[urlEnvVar] && process.env[keyEnvVar]),
     supportedLanguagePairs,
 
     async transcribe(input: AudioInput): Promise<SpeechResult> {
       if (input.devTranscriptOverride !== undefined) {
         return {
+          provider: name.toLowerCase().replace(/\s+/g, "-"),
+          providerName: `${name} (dev override — NOT a live response)`,
+          model: `${name} (dev-override)`,
           transcript: input.devTranscriptOverride,
           confidence: null,
           languagePair: input.languagePair,
           latencyMs: 0,
-          providerName: `${name} (dev override — NOT a live response)`,
+          success: true,
         };
       }
 
@@ -98,11 +103,14 @@ export function createGenericRestProvider(
           );
         }
         return {
+          provider: name.toLowerCase().replace(/\s+/g, "-"),
+          providerName: name,
+          model: name,
           transcript: json.transcript,
           confidence: typeof json.confidence === "number" ? json.confidence : null,
           languagePair: input.languagePair,
           latencyMs,
-          providerName: name,
+          success: true,
           raw: json,
         };
       } catch (err) {

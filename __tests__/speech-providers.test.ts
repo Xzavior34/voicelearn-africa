@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { saharaProvider } from "@/lib/speech/providers/sahara";
+import { whisperProvider } from "@/lib/speech/providers/whisper";
+import { geminiProvider } from "@/lib/speech/providers/gemini";
 import { modelBProvider } from "@/lib/speech/providers/model-b";
 import { SpeechProviderError } from "@/lib/speech/types";
 
@@ -43,6 +45,70 @@ describe("saharaProvider", () => {
 
   it("checkHealth reports not_configured with no API key", async () => {
     const health = await saharaProvider.checkHealth!();
+    expect(health.state).toBe("not_configured");
+  });
+});
+
+describe("whisperProvider", () => {
+  const originalKey = process.env.OPENAI_API_KEY;
+
+  beforeEach(() => {
+    delete process.env.OPENAI_API_KEY;
+    delete process.env.WHISPER_API_KEY;
+  });
+
+  afterEach(() => {
+    if (originalKey) process.env.OPENAI_API_KEY = originalKey;
+  });
+
+  it("reports isLive=false when no OpenAI key is set", () => {
+    expect(whisperProvider.isLive).toBe(false);
+  });
+
+  it("throws REQUIRES_API_ACCESS without API key", async () => {
+    await expect(
+      whisperProvider.transcribe({
+        audioBytes: new ArrayBuffer(10),
+        mimeType: "audio/wav",
+        languagePair: "en",
+      }),
+    ).rejects.toMatchObject({ code: "REQUIRES_API_ACCESS" });
+  });
+
+  it("checkHealth reports not_configured without key", async () => {
+    const health = await whisperProvider.checkHealth!();
+    expect(health.state).toBe("not_configured");
+  });
+});
+
+describe("geminiProvider", () => {
+  const originalKey = process.env.GOOGLE_API_KEY;
+
+  beforeEach(() => {
+    delete process.env.GOOGLE_API_KEY;
+    delete process.env.GEMINI_API_KEY;
+  });
+
+  afterEach(() => {
+    if (originalKey) process.env.GOOGLE_API_KEY = originalKey;
+  });
+
+  it("reports isLive=false when no Google API key is set", () => {
+    expect(geminiProvider.isLive).toBe(false);
+  });
+
+  it("throws REQUIRES_API_ACCESS without API key", async () => {
+    await expect(
+      geminiProvider.transcribe({
+        audioBytes: new ArrayBuffer(10),
+        mimeType: "audio/wav",
+        languagePair: "en-pcm",
+      }),
+    ).rejects.toMatchObject({ code: "REQUIRES_API_ACCESS" });
+  });
+
+  it("checkHealth reports not_configured without key", async () => {
+    const health = await geminiProvider.checkHealth!();
     expect(health.state).toBe("not_configured");
   });
 });

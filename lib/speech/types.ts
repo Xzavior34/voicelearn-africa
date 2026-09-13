@@ -39,17 +39,32 @@ export interface AudioInput {
 }
 
 export interface SpeechResult {
-  /** The provider's best transcription of what was actually said. */
+  /** Provider identifier, e.g. "sahara", "whisper-large-v3", "gemini". */
+  provider: string;
+  /** Backwards-compatible alias for provider identifier. */
+  providerName: string;
+  /** Actual configured model identifier, e.g. "sahara-v2.5", "whisper-1", "gemini-1.5-flash". */
+  model: string;
+  /** The provider's transcription of what was spoken. */
   transcript: string;
-  /** 0-1 confidence, ONLY if the provider genuinely reports one. */
+  /** 0-1 confidence score, ONLY if the provider genuinely reports one. */
   confidence: number | null;
   /** Detected/declared language pair. */
   languagePair: LanguagePair;
   /** Wall-clock time the provider call took, in milliseconds. */
   latencyMs: number;
-  /** Which provider produced this result. */
-  providerName: string;
-  /** Raw, provider-specific metadata for debugging — never rendered to learners. */
+  /** Whether transcription succeeded. */
+  success: boolean;
+  /** Error message if transcription failed. */
+  error?: string;
+  /** Audio and encoding metadata. */
+  metadata?: {
+    audioDurationMs?: number;
+    sampleRate?: number;
+    channels?: number;
+    mode?: string;
+  };
+  /** Raw, provider-specific response object for debugging. */
   raw?: unknown;
 }
 
@@ -70,9 +85,6 @@ export class SpeechProviderError extends Error {
       | "TIMEOUT"
       | "MALFORMED_RESPONSE"
       | "AUDIO_CONVERSION_FAILED"
-      // The following mirror Sahara's own documented protocol error
-      // message_types 1:1 (docs.voice.intron.io) so a live failure can
-      // be surfaced to the UI/health check without guessing a mapping.
       | "AUTHENTICATION_ERROR"
       | "QUOTA_EXCEEDED"
       | "RESOURCE_EXHAUSTED"
@@ -100,11 +112,16 @@ export interface ProviderHealthResult {
   message: string;
   checkedAt: string; // ISO timestamp
   latencyMs: number | null;
+  model?: string;
 }
 
 export interface SpeechProvider {
-  /** Stable identifier used in benchmark reports, e.g. "sahara". */
+  /** Unique provider identifier, e.g. "sahara", "whisper-large-v3", "gemini". */
+  readonly id: string;
+  /** Human-readable name, e.g. "Intron Sahara v2.5". */
   readonly name: string;
+  /** The specific model name used, e.g. "sahara-v2.5". */
+  readonly model: string;
   /** Whether this provider is genuinely callable right now (has live credentials). */
   readonly isLive: boolean;
   /** Which language pairs this provider claims support for. */
@@ -113,9 +130,7 @@ export interface SpeechProvider {
   /**
    * Optional real connectivity/auth check, distinct from `isLive`
    * (which only reflects whether credentials are *configured*, not
-   * whether they actually work). Providers that support it should make
-   * a genuine minimal call — never report "authenticated" without one
-   * actually succeeding.
+   * whether they actually work).
    */
   checkHealth?(): Promise<ProviderHealthResult>;
 }

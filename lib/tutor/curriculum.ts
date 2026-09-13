@@ -50,6 +50,9 @@ export const CURRICULUM: Concept[] = [
       "why negative",
       "minus times minus",
       "negative number multiply",
+      "negative × negative",
+      "negative x negative",
+      "why does negative",
     ],
     explanation:
       "Think of multiplication as repeated change in direction. Multiplying by a negative number reverses direction. Reverse direction twice and you end up facing the positive direction again — that's why a negative times a negative gives a positive.",
@@ -97,6 +100,10 @@ export const CURRICULUM: Concept[] = [
       "absorb light",
       "dey absorb light",
       "why plant green",
+      "why do plants need sunlight",
+      "plant need sunlight",
+      "plants need sunlight",
+      "why plants need sun",
     ],
     explanation:
       "Chlorophyll is the pigment that captures light energy — mostly red and blue light — and reflects green light, which is why leaves look green. That captured light energy is what powers photosynthesis, letting the plant turn carbon dioxide and water into glucose and oxygen.",
@@ -207,7 +214,7 @@ export const CURRICULUM: Concept[] = [
     id: "friction-rolling",
     subject: "science",
     topic: "Friction and rolling motion",
-    concept: "Why a rolling ball eventually stops",
+    concept: "Why friction slows down moving objects",
     triggerPhrases: [
       "ball eventually stop",
       "ball stop rolling",
@@ -362,7 +369,7 @@ const REGEX_DETECTORS: Record<string, RegExp> = {
   "main-idea": /main idea|central idea/i,
   evaporation: /evaporat/i,
   "friction-rolling": /ball\D{0,20}(stop|roll)/i,
-  "salt-dissolve": /salt\D{0,15}dissolv/i,
+  "salt-dissolve": /salt\D{0,15}dissolv|iyọ̀\D{0,15}dissolv/i,
   "affect-effect": /\baffect\b.{0,15}\beffect\b/i,
   "divide-by-zero": /divid\w*\D{0,10}(by\s+)?zero/i,
 };

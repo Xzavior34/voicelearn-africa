@@ -11,6 +11,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "benchmark": "node --use-system-ca --import tsx scripts/run-benchmark.ts",
+    "benchmark:all": "node --use-system-ca --import tsx scripts/run-benchmark.ts",
+    "benchmark:health": "node --use-system-ca --import tsx scripts/benchmark-health.ts",
     "sahara:health": "node --use-system-ca --import tsx scripts/sahara-health-check.ts"
   },
   "dependencies": {

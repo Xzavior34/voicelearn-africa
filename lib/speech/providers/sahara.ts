@@ -297,7 +297,9 @@ function runSaharaSession(
 }
 
 export const saharaProvider: SpeechProvider = {
-  name: "sahara",
+  id: "sahara",
+  name: "Intron Sahara v2.5",
+  model: "sahara-v2.5",
   get isLive(): boolean {
     return Boolean(process.env.SAHARA_API_KEY);
   },
@@ -307,11 +309,14 @@ export const saharaProvider: SpeechProvider = {
     // Development/benchmark escape hatch — see AudioInput.devTranscriptOverride.
     if (input.devTranscriptOverride !== undefined) {
       return {
+        provider: "sahara",
+        providerName: "sahara (dev override — NOT a live Sahara response)",
+        model: "sahara-v2.5 (dev-override)",
         transcript: input.devTranscriptOverride,
         confidence: null,
         languagePair: input.languagePair,
         latencyMs: 0,
-        providerName: "sahara (dev override — NOT a live Sahara response)",
+        success: true,
       };
     }
 
@@ -349,11 +354,20 @@ export const saharaProvider: SpeechProvider = {
     const { transcriptText, latencyMs } = await runSaharaSession(wsUrl, apiKey, languageCode, pcmChunks);
 
     return {
+      provider: "sahara",
+      providerName: "sahara",
+      model: "sahara-v2.5",
       transcript: transcriptText,
       confidence: null, // Sahara's documented COMMITTED_TRANSCRIPT payload has no confidence field
       languagePair: input.languagePair,
       latencyMs,
-      providerName: "sahara",
+      success: true,
+      metadata: {
+        audioDurationMs: Math.round((pcm.length / 2 / 16000) * 1000),
+        sampleRate: 16000,
+        channels: 1,
+        mode: "streaming-websocket",
+      },
     };
   },
 

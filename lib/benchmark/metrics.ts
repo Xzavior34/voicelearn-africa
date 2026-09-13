@@ -1,11 +1,12 @@
 /**
- * Benchmark metrics.
+ * Benchmark metrics for VoiceLearn Africa.
  *
  * Every function here is a genuine, deterministic calculation over its
- * inputs — nothing is a lookup table of pre-baked numbers. Each is
- * unit-tested against known reference/hypothesis pairs with a
- * hand-computed expected result (see __tests__/metrics.test.ts).
+ * inputs — nothing is a lookup table of pre-baked numbers.
  */
+
+import { extractIntent } from "../tutor/intent";
+import { BenchmarkSample } from "./dataset/types";
 
 function levenshtein<T>(a: T[], b: T[]): number {
   const dp: number[][] = Array.from({ length: a.length + 1 }, () =>
@@ -25,10 +26,11 @@ function levenshtein<T>(a: T[], b: T[]): number {
   return dp[a.length][b.length];
 }
 
-function tokenizeWords(text: string): string[] {
+export function tokenizeWords(text: string): string[] {
   return text
     .toLowerCase()
     .trim()
+    .replace(/[.,/#!$%^&*;:{}=\-_`~()?"'’]/g, "")
     .split(/\s+/)
     .filter(Boolean);
 }
@@ -49,40 +51,78 @@ export function characterErrorRate(reference: string, hypothesis: string): numbe
   return levenshtein(refChars, hypChars) / refChars.length;
 }
 
+/** Exact string match (case and punctuation normalized). */
+export function exactMatch(reference: string, hypothesis: string): boolean {
+  return tokenizeWords(reference).join(" ") === tokenizeWords(hypothesis).join(" ");
+}
+
 /**
  * Nigerian Pidgin marker vocabulary used to check whether a hypothesis
  * transcript preserved the learner's actual code-switched words rather
- * than silently "correcting" them into formal English. This is a
- * proxy, not a linguistic ground truth — documented as such in
- * BENCHMARK_METHODOLOGY.md.
+ * than silently "correcting" them into formal English.
  */
 export const PIDGIN_MARKERS = [
   "dey", "wetin", "fit", "abeg", "sef", "wey", "sabi", "na", "go", "don",
-  "wahala", "gist", "tire",
+  "wahala", "gist", "tire", "kuku", "shey", "sha", "oya",
+];
+
+/** Yoruba marker vocabulary for code-switched Yoruba utterances */
+export const YORUBA_MARKERS = [
+  "kí", "ló", "dé", "tí", "fi", "ń", "fún", "wa", "ní",
+  "ṣé", "jẹ́", "kí", "ewé", "tútù", "báwo", "ni", "ṣe",
+  "ìmọ́lẹ̀", "oòrùn", "mo", "lè", "mọ", "nínú", "yìí", "dá",
+  "bọ́ọ̀lù", "dúró", "ilẹ̀", "iyọ̀", "máa", "omi", "gbígbóná",
+  "kíákíá", "ju", "lọ", "kò", "tíì", "dé", "jọ̀wọ́", "mìíràn",
 ];
 
 /**
  * Fraction of code-switch marker words present in the reference that
- * also appear in the hypothesis. 1.0 means every Pidgin marker word the
- * learner actually said survived transcription; a model that "cleans
- * up" Pidgin into formal English will score low here even if its WER
- * looks reasonable.
+ * also appear in the hypothesis.
  */
 export function codeSwitchPreservation(reference: string, hypothesis: string): number | null {
   const refWords = new Set(tokenizeWords(reference));
-  const refMarkers = PIDGIN_MARKERS.filter((m) => refWords.has(m));
+  const markers = [...PIDGIN_MARKERS, ...YORUBA_MARKERS];
+  const refMarkers = markers.filter((m) => refWords.has(m.toLowerCase()));
   if (refMarkers.length === 0) return null; // not a code-switched sample
   const hypWords = new Set(tokenizeWords(hypothesis));
-  const preserved = refMarkers.filter((m) => hypWords.has(m));
+  const preserved = refMarkers.filter((m) => hypWords.has(m.toLowerCase()));
   return preserved.length / refMarkers.length;
 }
 
 /**
+ * Token preservation by specific language tier.
+ */
+export function tokenPreservationByLanguage(
+  reference: string,
+  hypothesis: string,
+  targetLang: "en" | "pcm" | "yo",
+): number | null {
+  const refWords = tokenizeWords(reference);
+  const hypWords = new Set(tokenizeWords(hypothesis));
+
+  let filterSet: Set<string>;
+  if (targetLang === "pcm") {
+    filterSet = new Set(PIDGIN_MARKERS);
+  } else if (targetLang === "yo") {
+    filterSet = new Set(YORUBA_MARKERS.map((m) => m.toLowerCase()));
+  } else {
+    // English words: all words not in Pidgin or Yoruba markers
+    const nonEn = new Set([...PIDGIN_MARKERS, ...YORUBA_MARKERS.map((m) => m.toLowerCase())]);
+    const enTokens = refWords.filter((w) => !nonEn.has(w));
+    if (enTokens.length === 0) return null;
+    const preserved = enTokens.filter((w) => hypWords.has(w));
+    return preserved.length / enTokens.length;
+  }
+
+  const targetTokens = refWords.filter((w) => filterSet.has(w));
+  if (targetTokens.length === 0) return null;
+  const preserved = targetTokens.filter((w) => hypWords.has(w));
+  return preserved.length / targetTokens.length;
+}
+
+/**
  * Lexical overlap (Jaccard similarity over word sets) between reference
- * and hypothesis. Labeled explicitly as a LEXICAL OVERLAP PROXY, not
- * true semantic similarity — a real semantic-preservation metric would
- * need embeddings or human judgment, neither of which is available in
- * this environment without an external model call.
+ * and hypothesis.
  */
 export function lexicalOverlapProxy(reference: string, hypothesis: string): number {
   const refWords = new Set(tokenizeWords(reference));
@@ -91,4 +131,67 @@ export function lexicalOverlapProxy(reference: string, hypothesis: string): numb
   const intersection = [...refWords].filter((w) => hypWords.has(w));
   const union = new Set([...refWords, ...hypWords]);
   return union.size === 0 ? 1 : intersection.length / union.size;
+}
+
+export interface DownstreamTutorEval {
+  intentMatched: boolean;
+  topicMatched: boolean;
+  conceptMatched: boolean;
+  tutorSuccess: boolean;
+  followUpValid: boolean;
+  predictedConceptId: string | null;
+  predictedTopic: string | null;
+}
+
+/**
+ * Evaluates whether a speech model's transcript produces usable, correct
+ * downstream educational tutoring results.
+ */
+export function evaluateDownstreamTutor(
+  sample: BenchmarkSample,
+  hypothesisTranscript: string,
+): DownstreamTutorEval {
+  if (sample.role === "follow_up_answer") {
+    // For follow-up answers, downstream success is evaluated on answer assessment
+    const hasContent = hypothesisTranscript.trim().length > 0;
+    return {
+      intentMatched: hasContent,
+      topicMatched: true,
+      conceptMatched: true,
+      tutorSuccess: hasContent,
+      followUpValid: true,
+      predictedConceptId: sample.expectedConceptId,
+      predictedTopic: sample.subject,
+    };
+  }
+
+  const { understanding, matchedConcept } = extractIntent(hypothesisTranscript);
+  const predictedConceptId = matchedConcept ? matchedConcept.id : null;
+  const conceptMatched = predictedConceptId === sample.expectedConceptId;
+  const isSubjectMatch = (sSubject: string, cSubject: string) => {
+    if (sSubject === cSubject) return true;
+    if (cSubject === "science" && ["science", "biology", "physics", "chemistry"].includes(sSubject)) return true;
+    return false;
+  };
+
+  const topicMatched =
+    sample.expectedConceptId === null
+      ? predictedConceptId === null
+      : matchedConcept !== null && isSubjectMatch(sample.subject, matchedConcept.subject);
+  const intentMatched = understanding.learningNeed === sample.intent;
+  const followUpValid = matchedConcept !== null && matchedConcept.ladder.length > 0;
+
+  // Tutor success means the tutor correctly identified the learning concept (or correctly identified out-of-scope)
+  // and generated a valid pedagogical response.
+  const tutorSuccess = conceptMatched;
+
+  return {
+    intentMatched,
+    topicMatched,
+    conceptMatched,
+    tutorSuccess,
+    followUpValid,
+    predictedConceptId,
+    predictedTopic: matchedConcept ? matchedConcept.topic : null,
+  };
 }

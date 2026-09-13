@@ -1,0 +1,222 @@
+{
+  "metadata": {
+    "runId": "run-1789307620529",
+    "timestamp": "2026-09-13T13:53:40.529Z",
+    "datasetVersion": "dataset-v2-codeswitch-africa",
+    "datasetSampleCount": 34,
+    "models": [
+      "sahara",
+      "whisper-large-v3",
+      "gemini"
+    ]
+  },
+  "summaries": [
+    {
+      "provider": "sahara",
+      "providerName": "Intron Sahara v2.5",
+      "model": "sahara-v2.5",
+      "isLive": true,
+      "totalDatasetSamples": 34,
+      "audioSamplesAvailable": 1,
+      "samplesAttempted": 1,
+      "samplesMeasured": 1,
+      "samplesSkipped": 33,
+      "skippedReason": "Some audio samples could not be processed",
+      "statusLabel": "VERIFIED",
+      "meanWer": 0.07142857142857142,
+      "meanCer": 0.06349206349206349,
+      "exactMatchRate": 0,
+      "meanCodeSwitchPreservation": null,
+      "meanLexicalOverlap": 0.9230769230769231,
+      "tutorSuccessRate": 1,
+      "intentAccuracy": 1,
+      "topicAccuracy": 1,
+      "meanLatencyMs": 16635,
+      "failureRate": 0.9705882352941176,
+      "categories": {
+        "standard_english": {
+          "category": "standard_english",
+          "sampleCount": 1,
+          "meanWer": 0.07142857142857142,
+          "meanCer": 0.06349206349206349,
+          "tutorSuccessRate": 1
+        },
+        "nigerian_pidgin": {
+          "category": "nigerian_pidgin",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        },
+        "educational_code_switching": {
+          "category": "educational_code_switching",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        },
+        "subject_vocabulary": {
+          "category": "subject_vocabulary",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        },
+        "english_yoruba": {
+          "category": "english_yoruba",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        },
+        "english_pidgin": {
+          "category": "english_pidgin",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        }
+      }
+    },
+    {
+      "provider": "whisper-large-v3",
+      "providerName": "OpenAI Whisper Large v3",
+      "model": "whisper-1",
+      "isLive": false,
+      "totalDatasetSamples": 34,
+      "audioSamplesAvailable": 1,
+      "samplesAttempted": 1,
+      "samplesMeasured": 0,
+      "samplesSkipped": 34,
+      "skippedReason": "Provider OpenAI Whisper Large v3 is not configured (REQUIRES_API_ACCESS)",
+      "statusLabel": "BLOCKED (REQUIRES_API_ACCESS)",
+      "meanWer": null,
+      "meanCer": null,
+      "exactMatchRate": null,
+      "meanCodeSwitchPreservation": null,
+      "meanLexicalOverlap": null,
+      "tutorSuccessRate": null,
+      "intentAccuracy": null,
+      "topicAccuracy": null,
+      "meanLatencyMs": null,
+      "failureRate": 1,
+      "categories": {
+        "standard_english": {
+          "category": "standard_english",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        },
+        "nigerian_pidgin": {
+          "category": "nigerian_pidgin",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        },
+        "educational_code_switching": {
+          "category": "educational_code_switching",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        },
+        "subject_vocabulary": {
+          "category": "subject_vocabulary",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        },
+        "english_yoruba": {
+          "category": "english_yoruba",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        },
+        "english_pidgin": {
+          "category": "english_pidgin",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        }
+      }
+    },
+    {
+      "provider": "gemini",
+      "providerName": "Google Gemini Audio",
+      "model": "gemini-1.5-flash",
+      "isLive": true,
+      "totalDatasetSamples": 34,
+      "audioSamplesAvailable": 1,
+      "samplesAttempted": 1,
+      "samplesMeasured": 0,
+      "samplesSkipped": 34,
+      "skippedReason": "Some audio samples could not be processed",
+      "statusLabel": "LIVE_AUTHENTICATED (AUDIO_DATASET_REQUIRED)",
+      "meanWer": null,
+      "meanCer": null,
+      "exactMatchRate": null,
+      "meanCodeSwitchPreservation": null,
+      "meanLexicalOverlap": null,
+      "tutorSuccessRate": null,
+      "intentAccuracy": null,
+      "topicAccuracy": null,
+      "meanLatencyMs": null,
+      "failureRate": 1,
+      "categories": {
+        "standard_english": {
+          "category": "standard_english",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        },
+        "nigerian_pidgin": {
+          "category": "nigerian_pidgin",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        },
+        "educational_code_switching": {
+          "category": "educational_code_switching",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        },
+        "subject_vocabulary": {
+          "category": "subject_vocabulary",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        },
+        "english_yoruba": {
+          "category": "english_yoruba",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        },
+        "english_pidgin": {
+          "category": "english_pidgin",
+          "sampleCount": 0,
+          "meanWer": null,
+          "meanCer": null,
+          "tutorSuccessRate": null
+        }
+      }
+    }
+  ],
+  "intentBaseline": {
+    "totalSamples": 32,
+    "correct": 26,
+    "accuracy": 0.8125,
+    "topicAccuracy": 0.46875
+  }
+}

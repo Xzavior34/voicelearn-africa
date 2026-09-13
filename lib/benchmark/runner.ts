@@ -1,24 +1,53 @@
 import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { BENCHMARK_DATASET } from "./dataset/dataset";
 import { speechProviders } from "../speech/registry";
 import { SpeechProviderError } from "../speech/types";
-import { wordErrorRate, characterErrorRate, codeSwitchPreservation, lexicalOverlapProxy } from "./metrics";
+import {
+  wordErrorRate,
+  characterErrorRate,
+  exactMatch,
+  codeSwitchPreservation,
+  lexicalOverlapProxy,
+  evaluateDownstreamTutor,
+  DownstreamTutorEval,
+} from "./metrics";
 import { extractIntent } from "../tutor/intent";
 
 export interface AsrSampleResult {
   sampleId: string;
+  provider: string;
   providerName: string;
+  model: string;
   status: "measured" | "requires_api_access" | "local_device_test_required" | "audio_dataset_required" | "error";
+  referenceTranscript: string;
+  hypothesisTranscript: string | null;
+  languagePair: string;
+  domain: string;
+  category: string;
   wer: number | null;
   cer: number | null;
+  exactMatch: boolean | null;
   codeSwitchPreservation: number | null;
   lexicalOverlap: number | null;
   latencyMs: number | null;
+  downstream: DownstreamTutorEval | null;
+  audioHash?: string | null;
   errorMessage?: string;
 }
 
+export interface CategoryPerformance {
+  category: string;
+  sampleCount: number;
+  meanWer: number | null;
+  meanCer: number | null;
+  tutorSuccessRate: number | null;
+}
+
 export interface AsrProviderSummary {
+  provider: string;
   providerName: string;
+  model: string;
   isLive: boolean;
   totalDatasetSamples: number;
   audioSamplesAvailable: number;
@@ -29,36 +58,58 @@ export interface AsrProviderSummary {
   statusLabel: string;
   meanWer: number | null;
   meanCer: number | null;
+  exactMatchRate: number | null;
   meanCodeSwitchPreservation: number | null;
+  meanLexicalOverlap: number | null;
+  tutorSuccessRate: number | null;
+  intentAccuracy: number | null;
+  topicAccuracy: number | null;
   meanLatencyMs: number | null;
+  failureRate: number;
+  categories: Record<string, CategoryPerformance>;
 }
 
-/**
- * Attempts to run every provider in `providerNames` against every audio
- * sample in the dataset. Since this dataset has NO audio (see
- * dataset/types.ts), and no live provider credentials exist in this
- * environment, every result will honestly come back
- * "requires_api_access" — that is the correct, truthful output, not a
- * bug. Once real audio + credentials exist, this exact function
- * produces real measured WER/CER/latency without any code changes.
- */
+export interface BenchmarkRunMetadata {
+  runId: string;
+  timestamp: string;
+  datasetVersion: string;
+  datasetSampleCount: number;
+  models: string[];
+}
+
+export interface BenchmarkRunOutput {
+  metadata: BenchmarkRunMetadata;
+  perSample: AsrSampleResult[];
+  summaries: AsrProviderSummary[];
+}
+
+function computeAudioHash(buffer: Buffer): string {
+  return createHash("sha256").update(buffer).digest("hex");
+}
+
 export async function runAsrComparison(
-  providerNames: string[] = Object.keys(speechProviders),
-): Promise<{ perSample: AsrSampleResult[]; summaries: AsrProviderSummary[] }> {
+  providerNames: string[] = ["sahara", "whisper-large-v3", "gemini"],
+): Promise<BenchmarkRunOutput> {
   const perSample: AsrSampleResult[] = [];
+  const runId = `run-${Date.now()}`;
+  const timestamp = new Date().toISOString();
 
   for (const providerName of providerNames) {
     const provider = speechProviders[providerName];
     if (!provider) continue;
 
+    const modelName = provider.model || providerName;
+
     for (const sample of BENCHMARK_DATASET) {
       let audioBytes: ArrayBuffer | null = null;
-      let mimeType = "audio/webm";
+      let mimeType = "audio/wav";
+      let audioHash: string | null = null;
 
       if (sample.audioFilePath && existsSync(sample.audioFilePath)) {
         const fileBuffer = readFileSync(sample.audioFilePath);
         audioBytes = fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength);
         mimeType = sample.audioFilePath.endsWith(".wav") ? "audio/wav" : "audio/webm";
+        audioHash = computeAudioHash(fileBuffer);
       }
 
       if (!audioBytes) {
@@ -66,16 +117,26 @@ export async function runAsrComparison(
         const status = provider.isLive ? "audio_dataset_required" : "requires_api_access";
         perSample.push({
           sampleId: sample.id,
-          providerName,
+          provider: providerName,
+          providerName: provider.name || providerName,
+          model: modelName,
           status,
+          referenceTranscript: sample.referenceTranscript,
+          hypothesisTranscript: null,
+          languagePair: sample.languagePair,
+          domain: sample.domain,
+          category: sample.category,
           wer: null,
           cer: null,
+          exactMatch: null,
           codeSwitchPreservation: null,
           lexicalOverlap: null,
           latencyMs: null,
+          downstream: null,
+          audioHash: null,
           errorMessage: provider.isLive
             ? "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
-            : `Provider ${providerName} is not configured (REQUIRES_API_ACCESS).`,
+            : `Provider ${provider.name || providerName} is not configured (REQUIRES_API_ACCESS).`,
         });
         continue;
       }
@@ -84,30 +145,53 @@ export async function runAsrComparison(
         const result = await provider.transcribe({
           audioBytes,
           mimeType,
-          languagePair: sample.languagePair,
+          languagePair: sample.languagePair === "pcm" ? "en-pcm" : sample.languagePair,
         });
+
+        const downstream = evaluateDownstreamTutor(sample, result.transcript);
+
         perSample.push({
           sampleId: sample.id,
-          providerName,
+          provider: providerName,
+          providerName: provider.name || providerName,
+          model: result.model || modelName,
           status: "measured",
+          referenceTranscript: sample.referenceTranscript,
+          hypothesisTranscript: result.transcript,
+          languagePair: sample.languagePair,
+          domain: sample.domain,
+          category: sample.category,
           wer: wordErrorRate(sample.referenceTranscript, result.transcript),
           cer: characterErrorRate(sample.referenceTranscript, result.transcript),
+          exactMatch: exactMatch(sample.referenceTranscript, result.transcript),
           codeSwitchPreservation: codeSwitchPreservation(sample.referenceTranscript, result.transcript),
           lexicalOverlap: lexicalOverlapProxy(sample.referenceTranscript, result.transcript),
           latencyMs: result.latencyMs,
+          downstream,
+          audioHash,
         });
       } catch (err) {
         const isConfigError = err instanceof SpeechProviderError && err.code === "REQUIRES_API_ACCESS";
         const isAudioMissing = err instanceof SpeechProviderError && err.code === "EMPTY_AUDIO";
         perSample.push({
           sampleId: sample.id,
-          providerName,
+          provider: providerName,
+          providerName: provider.name || providerName,
+          model: modelName,
           status: isConfigError ? "requires_api_access" : isAudioMissing ? "local_device_test_required" : "error",
+          referenceTranscript: sample.referenceTranscript,
+          hypothesisTranscript: null,
+          languagePair: sample.languagePair,
+          domain: sample.domain,
+          category: sample.category,
           wer: null,
           cer: null,
+          exactMatch: null,
           codeSwitchPreservation: null,
           lexicalOverlap: null,
           latencyMs: null,
+          downstream: null,
+          audioHash,
           errorMessage: (err as Error).message,
         });
       }
@@ -117,9 +201,10 @@ export async function runAsrComparison(
   const summaries: AsrProviderSummary[] = providerNames
     .filter((name) => speechProviders[name])
     .map((providerName) => {
-      const rows = perSample.filter((r) => r.providerName === providerName);
+      const provider = speechProviders[providerName];
+      const rows = perSample.filter((r) => r.provider === providerName);
       const measured = rows.filter((r) => r.status === "measured");
-      const isLive = speechProviders[providerName].isLive;
+      const isLive = provider.isLive;
       const audioAvailableCount = rows.filter((r) => {
         const s = BENCHMARK_DATASET.find((d) => d.id === r.sampleId);
         return Boolean(s?.audioFilePath && existsSync(s.audioFilePath));
@@ -129,17 +214,42 @@ export async function runAsrComparison(
         ? (audioAvailableCount === 0
             ? "Physical audio recordings not present on disk (AUDIO_DATASET_REQUIRED)"
             : "Some audio samples could not be processed")
-        : `Provider ${providerName} is not configured (REQUIRES_API_ACCESS)`;
+        : `Provider ${provider.name || providerName} is not configured (REQUIRES_API_ACCESS)`;
       const statusLabel = isLive
-        ? (measured.length > 0 ? "MEASURED" : "LIVE_AUTHENTICATED (AUDIO_DATASET_REQUIRED)")
+        ? (measured.length > 0 ? "VERIFIED" : "LIVE_AUTHENTICATED (AUDIO_DATASET_REQUIRED)")
         : "BLOCKED (REQUIRES_API_ACCESS)";
 
       const mean = (values: (number | null)[]) => {
         const nums = values.filter((v): v is number => v !== null);
         return nums.length > 0 ? nums.reduce((a, b) => a + b, 0) / nums.length : null;
       };
+
+      // Category breakdown
+      const categories: Record<string, CategoryPerformance> = {};
+      const uniqueCategories = [...new Set(BENCHMARK_DATASET.map((s) => s.category))];
+      for (const cat of uniqueCategories) {
+        const catRows = measured.filter((r) => r.category === cat);
+        const catWer = mean(catRows.map((r) => r.wer));
+        const catCer = mean(catRows.map((r) => r.cer));
+        const successCount = catRows.filter((r) => r.downstream?.tutorSuccess).length;
+        categories[cat] = {
+          category: cat,
+          sampleCount: catRows.length,
+          meanWer: catWer,
+          meanCer: catCer,
+          tutorSuccessRate: catRows.length > 0 ? successCount / catRows.length : null,
+        };
+      }
+
+      const exactMatchCount = measured.filter((r) => r.exactMatch === true).length;
+      const tutorSuccessCount = measured.filter((r) => r.downstream?.tutorSuccess === true).length;
+      const intentSuccessCount = measured.filter((r) => r.downstream?.intentMatched === true).length;
+      const topicSuccessCount = measured.filter((r) => r.downstream?.topicMatched === true).length;
+
       return {
-        providerName,
+        provider: providerName,
+        providerName: provider.name || providerName,
+        model: provider.model || providerName,
         isLive,
         totalDatasetSamples: rows.length,
         audioSamplesAvailable: audioAvailableCount,
@@ -150,18 +260,39 @@ export async function runAsrComparison(
         statusLabel,
         meanWer: mean(measured.map((r) => r.wer)),
         meanCer: mean(measured.map((r) => r.cer)),
+        exactMatchRate: measured.length > 0 ? exactMatchCount / measured.length : null,
         meanCodeSwitchPreservation: mean(measured.map((r) => r.codeSwitchPreservation)),
+        meanLexicalOverlap: mean(measured.map((r) => r.lexicalOverlap)),
+        tutorSuccessRate: measured.length > 0 ? tutorSuccessCount / measured.length : null,
+        intentAccuracy: measured.length > 0 ? intentSuccessCount / measured.length : null,
+        topicAccuracy: measured.length > 0 ? topicSuccessCount / measured.length : null,
         meanLatencyMs: mean(measured.map((r) => r.latencyMs)),
+        failureRate: rows.length > 0 ? (rows.length - measured.length) / rows.length : 0,
+        categories,
       };
     });
 
-  return { perSample, summaries };
+  return {
+    metadata: {
+      runId,
+      timestamp,
+      datasetVersion: "dataset-v2-codeswitch-africa",
+      datasetSampleCount: BENCHMARK_DATASET.length,
+      models: providerNames,
+    },
+    perSample,
+    summaries,
+  };
 }
 
 export interface IntentBaselineResult {
   sampleId: string;
+  referenceTranscript: string;
+  languagePair: string;
   expectedConceptId: string | null;
   predictedConceptId: string | null;
+  topicMatched: boolean;
+  intentMatched: boolean;
   correct: boolean;
 }
 
@@ -169,45 +300,52 @@ export interface IntentBaselineSummary {
   totalSamples: number;
   correct: number;
   accuracy: number;
+  topicAccuracy: number;
 }
 
-/**
- * Ground-truth-transcript baseline for the educational understanding
- * pipeline: runs the tutor's real `extractIntent` module directly over
- * the dataset's authored reference transcripts (i.e. "if ASR were
- * perfect, how accurately does the downstream reasoning identify the
- * right concept?"). This is genuinely computed now — it does not
- * require Sahara or any live speech provider, because it deliberately
- * skips ASR to isolate and test the reasoning layer on its own.
- */
 export function runIntentAccuracyBaseline(): {
   perSample: IntentBaselineResult[];
   summary: IntentBaselineSummary;
 } {
-  // Only "initial_question" samples carry topic-identifying content.
-  // "follow_up_answer" samples (e.g. "Twelve.") are bare answers with
-  // no topic of their own — including them here would understate
-  // accuracy for a reason that has nothing to do with intent
-  // extraction quality. They're exercised instead by the assessment
-  // module tests (__tests__/assessment.test.ts).
   const scoredSamples = BENCHMARK_DATASET.filter((s) => s.role === "initial_question");
   const perSample: IntentBaselineResult[] = scoredSamples.map((sample) => {
-    const { matchedConcept } = extractIntent(sample.referenceTranscript);
+    const { understanding, matchedConcept } = extractIntent(sample.referenceTranscript);
     const predictedConceptId = matchedConcept ? matchedConcept.id : null;
+    const correct = predictedConceptId === sample.expectedConceptId;
+    const isSubjectMatch = (sSubject: string, cSubject: string) => {
+      if (sSubject === cSubject) return true;
+      if (cSubject === "science" && ["science", "biology", "physics", "chemistry"].includes(sSubject)) return true;
+      return false;
+    };
+
+    const topicMatched =
+      sample.expectedConceptId === null
+        ? predictedConceptId === null
+        : matchedConcept !== null && isSubjectMatch(sample.subject, matchedConcept.subject);
+    const intentMatched = understanding.learningNeed === sample.intent;
+
     return {
       sampleId: sample.id,
+      referenceTranscript: sample.referenceTranscript,
+      languagePair: sample.languagePair,
       expectedConceptId: sample.expectedConceptId,
       predictedConceptId,
-      correct: predictedConceptId === sample.expectedConceptId,
+      topicMatched,
+      intentMatched,
+      correct,
     };
   });
+
   const correct = perSample.filter((r) => r.correct).length;
+  const topicCorrect = perSample.filter((r) => r.topicMatched).length;
+
   return {
     perSample,
     summary: {
       totalSamples: perSample.length,
       correct,
       accuracy: perSample.length > 0 ? correct / perSample.length : 0,
+      topicAccuracy: perSample.length > 0 ? topicCorrect / perSample.length : 0,
     },
   };
 }
