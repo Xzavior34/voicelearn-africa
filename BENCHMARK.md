@@ -28,10 +28,10 @@ Speech-to-Learning Success Rate
 | Model | Identifier | Runtime | License | Model Purpose |
 |---|---|---|---|---|
 | **Intron Sahara v2.5** | `sahara` | Remote WebSocket API | Commercial | Challenge-required African code-switching specialist (English, Pidgin, Yoruba) |
-| **OpenAI Whisper Large v3** | `whisper-large-v3` | Local Open-Weights | [Apache-2.0](https://huggingface.co/openai/whisper-large-v3) | Open-source global multilingual baseline (Zero API keys) |
-| **Meta Wav2Vec2 Large 960h** | `wav2vec2-large-960h` | Local Open-Weights | [Apache-2.0](https://huggingface.co/facebook/wav2vec2-large-960h) | Independent English LibriSpeech baseline (~1.26 GB) to evaluate general ASR breakdown |
+| **OpenAI Whisper Tiny** | `whisper-tiny` | Local, filesystem-only | Apache-2.0 | Open-source lightweight multilingual baseline (Zero API keys) |
+| **Meta Wav2Vec2 Base 960h** | `wav2vec2-base-960h` | Local, filesystem-only | Apache-2.0 | Independent English LibriSpeech baseline (not an African-language specialist) to evaluate general ASR breakdown |
 
-> **Fair Comparison Notice:** Sahara is evaluated as the challenge-specific speech model. Whisper Large v3 and Wav2Vec2 Large 960h are independently run local open-weight baselines. All models receive the same normalized audio (16kHz mono PCM16, SHA-256 verified) and are evaluated against the same human-reviewed references.
+> **Fair Comparison Notice:** Sahara is evaluated as the challenge-specific speech model. Whisper Tiny and Wav2Vec2 Base 960h are independently run local, filesystem-only baselines chosen for constrained-hardware benchmarking. All models receive the same normalized audio (16kHz mono PCM16, SHA-256 verified) and are evaluated against the same human-reviewed references.
 
 ---
 

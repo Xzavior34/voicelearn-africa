@@ -1,13 +1,13 @@
 {
   "metadata": {
-    "runId": "run-1789307620529",
-    "timestamp": "2026-09-13T13:53:40.529Z",
+    "runId": "run-1789325573681",
+    "timestamp": "2026-09-13T18:52:53.681Z",
     "datasetVersion": "dataset-v2-codeswitch-africa",
     "datasetSampleCount": 34,
     "models": [
       "sahara",
-      "whisper-large-v3",
-      "gemini"
+      "whisper-tiny",
+      "wav2vec2-base-960h"
     ]
   },
   "summaries": [
@@ -15,6 +15,7 @@
       "provider": "sahara",
       "providerName": "Intron Sahara v2.5",
       "model": "sahara-v2.5",
+      "runtime": "remote-api",
       "isLive": true,
       "totalDatasetSamples": 34,
       "audioSamplesAvailable": 1,
@@ -23,22 +24,25 @@
       "samplesSkipped": 33,
       "skippedReason": "Some audio samples could not be processed",
       "statusLabel": "VERIFIED",
-      "meanWer": 0.07142857142857142,
-      "meanCer": 0.06349206349206349,
+      "meanWer": 0.03571428571428571,
+      "meanCer": 0.05555555555555555,
+      "codeSwitchWer": null,
       "exactMatchRate": 0,
       "meanCodeSwitchPreservation": null,
       "meanLexicalOverlap": 0.9230769230769231,
+      "speechToLearningSuccessRate": 1,
       "tutorSuccessRate": 1,
       "intentAccuracy": 1,
       "topicAccuracy": 1,
-      "meanLatencyMs": 16635,
+      "meanLatencyMs": 12551,
+      "meanWarmInferenceMs": 12551,
       "failureRate": 0.9705882352941176,
       "categories": {
         "standard_english": {
           "category": "standard_english",
           "sampleCount": 1,
-          "meanWer": 0.07142857142857142,
-          "meanCer": 0.06349206349206349,
+          "meanWer": 0.03571428571428571,
+          "meanCer": 0.05555555555555555,
           "tutorSuccessRate": 1
         },
         "nigerian_pidgin": {
@@ -79,26 +83,30 @@
       }
     },
     {
-      "provider": "whisper-large-v3",
-      "providerName": "OpenAI Whisper Large v3",
-      "model": "whisper-1",
-      "isLive": false,
+      "provider": "whisper-tiny",
+      "providerName": "OpenAI Whisper Tiny (Local, Filesystem-Only)",
+      "model": "openai/whisper-tiny",
+      "runtime": "local",
+      "isLive": true,
       "totalDatasetSamples": 34,
       "audioSamplesAvailable": 1,
       "samplesAttempted": 1,
       "samplesMeasured": 0,
       "samplesSkipped": 34,
-      "skippedReason": "Provider OpenAI Whisper Large v3 is not configured (REQUIRES_API_ACCESS)",
-      "statusLabel": "BLOCKED (REQUIRES_API_ACCESS)",
+      "skippedReason": "Some audio samples could not be processed",
+      "statusLabel": "LIVE_READY (AUDIO_DATASET_REQUIRED)",
       "meanWer": null,
       "meanCer": null,
+      "codeSwitchWer": null,
       "exactMatchRate": null,
       "meanCodeSwitchPreservation": null,
       "meanLexicalOverlap": null,
+      "speechToLearningSuccessRate": null,
       "tutorSuccessRate": null,
       "intentAccuracy": null,
       "topicAccuracy": null,
       "meanLatencyMs": null,
+      "meanWarmInferenceMs": null,
       "failureRate": 1,
       "categories": {
         "standard_english": {
@@ -146,9 +154,10 @@
       }
     },
     {
-      "provider": "gemini",
-      "providerName": "Google Gemini Audio",
-      "model": "gemini-1.5-flash",
+      "provider": "wav2vec2-base-960h",
+      "providerName": "Meta Wav2Vec2 Base 960h (Local Baseline, Filesystem-Only)",
+      "model": "facebook/wav2vec2-base-960h",
+      "runtime": "local",
       "isLive": true,
       "totalDatasetSamples": 34,
       "audioSamplesAvailable": 1,
@@ -156,16 +165,19 @@
       "samplesMeasured": 0,
       "samplesSkipped": 34,
       "skippedReason": "Some audio samples could not be processed",
-      "statusLabel": "LIVE_AUTHENTICATED (AUDIO_DATASET_REQUIRED)",
+      "statusLabel": "LIVE_READY (AUDIO_DATASET_REQUIRED)",
       "meanWer": null,
       "meanCer": null,
+      "codeSwitchWer": null,
       "exactMatchRate": null,
       "meanCodeSwitchPreservation": null,
       "meanLexicalOverlap": null,
+      "speechToLearningSuccessRate": null,
       "tutorSuccessRate": null,
       "intentAccuracy": null,
       "topicAccuracy": null,
       "meanLatencyMs": null,
+      "meanWarmInferenceMs": null,
       "failureRate": 1,
       "categories": {
         "standard_english": {
@@ -217,6 +229,6 @@
     "totalSamples": 32,
     "correct": 26,
     "accuracy": 0.8125,
-    "topicAccuracy": 0.46875
+    "topicAccuracy": 0.8125
   }
 }

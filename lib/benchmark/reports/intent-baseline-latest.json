@@ -16,7 +16,7 @@
       "languagePair": "en",
       "expectedConceptId": "photosynthesis-chlorophyll",
       "predictedConceptId": "photosynthesis-chlorophyll",
-      "topicMatched": false,
+      "topicMatched": true,
       "intentMatched": true,
       "correct": true
     },
@@ -46,7 +46,7 @@
       "languagePair": "en",
       "expectedConceptId": "salt-dissolve",
       "predictedConceptId": "salt-dissolve",
-      "topicMatched": false,
+      "topicMatched": true,
       "intentMatched": true,
       "correct": true
     },
@@ -76,7 +76,7 @@
       "languagePair": "pcm",
       "expectedConceptId": "photosynthesis-chlorophyll",
       "predictedConceptId": "photosynthesis-chlorophyll",
-      "topicMatched": false,
+      "topicMatched": true,
       "intentMatched": false,
       "correct": true
     },
@@ -96,7 +96,7 @@
       "languagePair": "pcm",
       "expectedConceptId": "friction-rolling",
       "predictedConceptId": "friction-rolling",
-      "topicMatched": false,
+      "topicMatched": true,
       "intentMatched": true,
       "correct": true
     },
@@ -106,7 +106,7 @@
       "languagePair": "pcm",
       "expectedConceptId": "salt-dissolve",
       "predictedConceptId": "salt-dissolve",
-      "topicMatched": false,
+      "topicMatched": true,
       "intentMatched": true,
       "correct": true
     },
@@ -126,7 +126,7 @@
       "languagePair": "en-pcm",
       "expectedConceptId": "photosynthesis-chlorophyll",
       "predictedConceptId": "photosynthesis-chlorophyll",
-      "topicMatched": false,
+      "topicMatched": true,
       "intentMatched": false,
       "correct": true
     },
@@ -156,7 +156,7 @@
       "languagePair": "en-pcm",
       "expectedConceptId": "photosynthesis-chlorophyll",
       "predictedConceptId": "photosynthesis-chlorophyll",
-      "topicMatched": false,
+      "topicMatched": true,
       "intentMatched": true,
       "correct": true
     },
@@ -186,7 +186,7 @@
       "languagePair": "en-pcm",
       "expectedConceptId": "salt-dissolve",
       "predictedConceptId": "salt-dissolve",
-      "topicMatched": false,
+      "topicMatched": true,
       "intentMatched": true,
       "correct": true
     },
@@ -206,7 +206,7 @@
       "languagePair": "en-pcm",
       "expectedConceptId": "photosynthesis-chlorophyll",
       "predictedConceptId": "photosynthesis-chlorophyll",
-      "topicMatched": false,
+      "topicMatched": true,
       "intentMatched": true,
       "correct": true
     },
@@ -276,7 +276,7 @@
       "languagePair": "en-yo",
       "expectedConceptId": "photosynthesis-chlorophyll",
       "predictedConceptId": "photosynthesis-chlorophyll",
-      "topicMatched": false,
+      "topicMatched": true,
       "intentMatched": true,
       "correct": true
     },
@@ -306,7 +306,7 @@
       "languagePair": "en-yo",
       "expectedConceptId": "salt-dissolve",
       "predictedConceptId": "salt-dissolve",
-      "topicMatched": false,
+      "topicMatched": true,
       "intentMatched": true,
       "correct": true
     },
@@ -325,6 +325,6 @@
     "totalSamples": 32,
     "correct": 26,
     "accuracy": 0.8125,
-    "topicAccuracy": 0.46875
+    "topicAccuracy": 0.8125
   }
 }

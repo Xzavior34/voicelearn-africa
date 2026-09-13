@@ -16,8 +16,8 @@ export default function SampleInspector({ samples, results = [] }: Props) {
   const sampleResults = results.filter((r) => r.sampleId === sample?.id);
 
   const saharaResult = sampleResults.find((r) => r.provider === "sahara");
-  const whisperResult = sampleResults.find((r) => r.provider === "whisper-large-v3" || r.provider === "model-b");
-  const wav2vecResult = sampleResults.find((r) => r.provider === "wav2vec2-large-960h" || r.provider === "model-c");
+  const whisperResult = sampleResults.find((r) => r.provider === "whisper-tiny" || r.provider === "model-b");
+  const wav2vecResult = sampleResults.find((r) => r.provider === "wav2vec2-base-960h" || r.provider === "model-c");
 
   if (!sample) return null;
 
@@ -123,13 +123,13 @@ export default function SampleInspector({ samples, results = [] }: Props) {
           </div>
         </div>
 
-        {/* Model B: Whisper Large v3 */}
+        {/* Model B: Whisper Tiny */}
         <div className="flex flex-col justify-between rounded-xl border border-line bg-paper p-4">
           <div>
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-ink text-xs">Whisper Large v3</span>
+              <span className="font-semibold text-ink text-xs">Whisper Tiny</span>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-paper-subtle text-ink-muted font-medium">
-                LOCAL OPEN-WEIGHT
+                LOCAL, FILESYSTEM-ONLY
               </span>
             </div>
             <div className="mt-3 text-xs space-y-2">
@@ -148,11 +148,11 @@ export default function SampleInspector({ samples, results = [] }: Props) {
           </div>
         </div>
 
-        {/* Model C: Wav2Vec2 Large 960h */}
+        {/* Model C: Wav2Vec2 Base 960h */}
         <div className="flex flex-col justify-between rounded-xl border border-line bg-paper p-4">
           <div>
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-ink text-xs">Wav2Vec2 Large 960h</span>
+              <span className="font-semibold text-ink text-xs">Wav2Vec2 Base 960h</span>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-paper-subtle text-ink-muted font-medium">
                 LOCAL BASELINE
               </span>

@@ -1,5 +1,7 @@
 # Demo recording script
 
+
+> **STALE-NUMBER NOTICE (added during model-config audit):** the WER/CER figures in this file (3.6% / 0.8%) are a historical Sahara measurement from an earlier session and predate this repo's current `whisper-tiny`/`wav2vec2-base-960h` benchmark configuration. A separate, now-deleted, later run showed 7.1%/6.3% for the same recording — Sahara's output is not perfectly deterministic across runs, and these docs were not kept in sync with each other. Do not cite either figure in the final submission; re-run `npm run benchmark` with a real `SAHARA_API_KEY` and cite that fresh number instead.
 Target length: 2:00–2:30. Every line below reflects what the current build actually does — the
 sequence is chosen specifically because it's the one that used to fail (stale topic/follow-up
 state) and is now fixed and regression-tested. Nothing here is aspirational; where evidence is

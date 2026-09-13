@@ -49,6 +49,7 @@ env/
 .tmp/
 .huggingface/
 models/
+Models/
 *.safetensors
 *.pt
 *.bin

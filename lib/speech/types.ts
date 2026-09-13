@@ -42,11 +42,11 @@ export interface AudioInput {
 }
 
 export interface SpeechResult {
-  /** Provider identifier, e.g. "sahara", "whisper-large-v3", "wav2vec2-large-960h". */
+  /** Provider identifier, e.g. "sahara", "whisper-tiny", "wav2vec2-base-960h". */
   provider: string;
   /** Backwards-compatible alias for provider identifier. */
   providerName: string;
-  /** Actual configured model identifier, e.g. "sahara-v2.5", "openai/whisper-large-v3", "facebook/wav2vec2-large-960h". */
+  /** Actual configured model identifier, e.g. "sahara-v2.5", "openai/whisper-tiny", "facebook/wav2vec2-base-960h". */
   model: string;
   /** Execution environment for the model. */
   runtime: "remote-api" | "local";
@@ -102,6 +102,7 @@ export class SpeechProviderError extends Error {
       | "INSUFFICIENT_AUDIO_ACTIVITY"
       | "SESSION_TIME_LIMIT_EXCEEDED"
       | "MODEL_DOWNLOAD_REQUIRED"
+      | "MODEL_NOT_FOUND"
       | "INSUFFICIENT_LOCAL_RESOURCES"
       | "LOCAL_WORKER_ERROR"
       | "UNKNOWN",
@@ -121,6 +122,7 @@ export type ProviderHealthState =
   | "ready"
   | "model_ready"
   | "model_download_required"
+  | "model_not_found"
   | "insufficient_resources"
   | "unknown_error";
 
@@ -135,7 +137,7 @@ export interface ProviderHealthResult {
 }
 
 export interface SpeechProvider {
-  /** Unique provider identifier, e.g. "sahara", "whisper-large-v3", "wav2vec2-large-960h". */
+  /** Unique provider identifier, e.g. "sahara", "whisper-tiny", "wav2vec2-base-960h". */
   readonly id: string;
   /** Human-readable name, e.g. "Intron Sahara v2.5". */
   readonly name: string;

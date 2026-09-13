@@ -3,8 +3,8 @@
  *
  * Models evaluated:
  *   1. Model A: Intron Sahara v2.5 (sahara) — Remote WebSocket API (SAHARA_API_KEY)
- *   2. Model B: OpenAI Whisper Large v3 (whisper-large-v3) — Local open weights (Apache-2.0, zero paid API)
- *   3. Model C: Meta Wav2Vec2 Large 960h (wav2vec2-large-960h) — Local open weights baseline (Apache-2.0, zero paid API)
+ *   2. Model B: OpenAI Whisper Tiny (whisper-tiny) — Local, filesystem-only (Apache-2.0, zero paid API)
+ *   3. Model C: Meta Wav2Vec2 Base 960h (wav2vec2-base-960h) — Local, filesystem-only baseline (Apache-2.0, zero paid API)
  *
  * Usage: npm run benchmark:health
  */
@@ -31,8 +31,8 @@ async function main() {
 
   const providers = [
     { id: "sahara", name: "Intron Sahara v2.5", provider: saharaProvider, runtime: "Remote API" },
-    { id: "whisper-large-v3", name: "OpenAI Whisper Large v3", provider: whisperProvider, runtime: "Local Open-Weight" },
-    { id: "wav2vec2-large-960h", name: "Meta Wav2Vec2 Large 960h", provider: wav2vec2Provider, runtime: "Local Baseline" },
+    { id: "whisper-tiny", name: "OpenAI Whisper Tiny", provider: whisperProvider, runtime: "Local Filesystem-Only" },
+    { id: "wav2vec2-base-960h", name: "Meta Wav2Vec2 Base 960h", provider: wav2vec2Provider, runtime: "Local Baseline" },
   ];
 
   const results: Array<{
@@ -64,8 +64,8 @@ async function main() {
         const badge =
           health.state === "authenticated" || health.state === "model_ready" || health.state === "ready"
             ? "✅ READY"
-            : health.state === "model_download_required"
-              ? "📥 READY (DOWNLOAD ON FIRST RUN)"
+            : health.state === "model_not_found"
+              ? "📥 BLOCKED (MODEL_NOT_FOUND — see LOCAL_MODEL_SETUP.md)"
               : health.state === "not_configured"
                 ? "⚠️  NOT CONFIGURED (Set SAHARA_API_KEY)"
                 : `❌ ${health.state.toUpperCase()}`;
@@ -102,7 +102,7 @@ async function main() {
   }
   console.log("\n=================================================================");
 
-  const readyCount = results.filter((r) => ["authenticated", "model_ready", "ready", "model_download_required"].includes(r.state)).length;
+  const readyCount = results.filter((r) => ["authenticated", "model_ready", "ready"].includes(r.state)).length;
   console.log(`Benchmark models available: ${readyCount} / ${results.length}`);
   console.log("Run 'npm run benchmark' to execute the three-model benchmark on audio samples.");
 }

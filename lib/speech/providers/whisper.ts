@@ -1,12 +1,15 @@
 /**
- * OpenAI Whisper Large v3 speech provider — LOCAL OPEN-WEIGHT INFERENCE.
+ * OpenAI Whisper Tiny speech provider — LOCAL, FILESYSTEM-ONLY INFERENCE.
  *
- * Source: openai/whisper-large-v3 (Hugging Face / Transformers)
- * License: Apache-2.0
+ * Source: openai/whisper-tiny (Hugging Face / Transformers)
+ * License: Apache-2.0 (per the Hugging Face Hub repo's license tag)
  *
- * ZERO PAID OPENAI API DEPENDENCIES.
- * Runs locally via Python Transformers inference worker (`scripts/asr/whisper_worker.py`).
- * Weights are loaded from the local Hugging Face cache.
+ * ZERO PAID API DEPENDENCIES. ZERO NETWORK ACCESS AT INFERENCE TIME.
+ * Runs locally via Python Transformers inference worker
+ * (`scripts/asr/whisper_worker.py`). Weights are loaded ONLY from the
+ * local filesystem path below — never downloaded on demand, and never
+ * silently resolved against a Hugging Face Hub ID. See
+ * LOCAL_MODEL_SETUP.md for exactly what to download and where to put it.
  */
 
 import { spawn } from "child_process";
@@ -21,9 +24,26 @@ import {
   LanguagePair,
   ProviderHealthResult,
 } from "../types";
+import { checkLocalModel, describeLocalModelProblem, LocalModelRequirement } from "../local-model";
+import { WHISPER_TINY_REQUIRED_FILES, WEIGHT_FILE_CANDIDATES } from "../model-requirements";
 
+const PROVIDER_ID = "whisper-tiny";
 const WHISPER_SUPPORTED_LANGUAGE_PAIRS: LanguagePair[] = ["en", "pcm", "en-pcm", "en-yo"];
-const DEFAULT_MODEL_ID = process.env.WHISPER_MODEL_ID || "openai/whisper-large-v3";
+
+// Label only — informational, never used to fetch anything over the network.
+const REPO_ID = process.env.WHISPER_MODEL_ID || "openai/whisper-tiny";
+
+const LOCAL_MODEL_DIR = path.resolve(
+  /*turbopackIgnore: true*/ process.env.WHISPER_LOCAL_MODEL_PATH || path.join(process.cwd(), "models", "whisper-tiny"),
+);
+
+const MODEL_REQUIREMENT: LocalModelRequirement = {
+  displayName: "Whisper Tiny",
+  repoId: REPO_ID,
+  localDir: LOCAL_MODEL_DIR,
+  requiredFiles: WHISPER_TINY_REQUIRED_FILES,
+  weightFileCandidates: WEIGHT_FILE_CANDIDATES,
+};
 
 function getPythonExecutable(): string {
   if (process.env.PYTHON_PATH && fs.existsSync(process.env.PYTHON_PATH)) {
@@ -46,9 +66,11 @@ function runPythonWorker(
     const pythonExe = getPythonExecutable();
     const scriptPath = path.resolve(process.cwd(), "scripts", "asr", scriptName);
 
-    const child = spawn(pythonExe, [scriptPath, ...args], {
+    const child = spawn(/*turbopackIgnore: true*/ pythonExe, [scriptPath, ...args], {
       stdio: ["pipe", "pipe", "pipe"],
-      env: { ...process.env },
+      // HF_HUB_OFFLINE / TRANSFORMERS_OFFLINE force transformers to refuse
+      // any network call and fail loudly instead of silently downloading.
+      env: { ...process.env, HF_HUB_OFFLINE: "1", TRANSFORMERS_OFFLINE: "1" },
     });
 
     let stdout = "";
@@ -63,7 +85,7 @@ function runPythonWorker(
       } catch {
         // ignore
       }
-      reject(new SpeechProviderError("whisper-large-v3", "TIMEOUT", `Whisper worker timed out after ${timeoutMs}ms`));
+      reject(new SpeechProviderError(PROVIDER_ID, "TIMEOUT", `Whisper worker timed out after ${timeoutMs}ms`));
     }, timeoutMs);
 
     child.stdout.on("data", (data) => {
@@ -80,7 +102,7 @@ function runPythonWorker(
       clearTimeout(timer);
       reject(
         new SpeechProviderError(
-          "whisper-large-v3",
+          PROVIDER_ID,
           "LOCAL_WORKER_ERROR",
           `Failed to launch Python worker: ${err.message}. Ensure Python 3 with transformers and torch is installed.`,
         ),
@@ -102,13 +124,14 @@ function runPythonWorker(
 }
 
 export const whisperProvider: SpeechProvider = {
-  id: "whisper-large-v3",
-  name: "OpenAI Whisper Large v3 (Local Open-Weight)",
-  model: DEFAULT_MODEL_ID,
+  id: PROVIDER_ID,
+  name: "OpenAI Whisper Tiny (Local, Filesystem-Only)",
+  model: REPO_ID,
   runtime: "local",
   get isLive(): boolean {
-    // Local provider is live when local Python environment is available
-    return true;
+    // Genuinely live only when the local model folder is complete —
+    // never assumed, never based on the HF Hub cache.
+    return checkLocalModel(MODEL_REQUIREMENT).available;
   },
   supportedLanguagePairs: WHISPER_SUPPORTED_LANGUAGE_PAIRS,
 
@@ -116,9 +139,9 @@ export const whisperProvider: SpeechProvider = {
     // Development/benchmark escape hatch
     if (input.devTranscriptOverride !== undefined) {
       return {
-        provider: "whisper-large-v3",
-        providerName: "whisper-large-v3 (dev-override)",
-        model: DEFAULT_MODEL_ID,
+        provider: PROVIDER_ID,
+        providerName: `${PROVIDER_ID} (dev-override)`,
+        model: REPO_ID,
         runtime: "local",
         transcript: input.devTranscriptOverride,
         confidence: null,
@@ -126,6 +149,11 @@ export const whisperProvider: SpeechProvider = {
         latencyMs: 0,
         success: true,
       };
+    }
+
+    const check = checkLocalModel(MODEL_REQUIREMENT);
+    if (!check.available) {
+      throw new SpeechProviderError(PROVIDER_ID, "MODEL_NOT_FOUND", describeLocalModelProblem(MODEL_REQUIREMENT, check));
     }
 
     let tempAudioPath = input.audioPath;
@@ -142,24 +170,24 @@ export const whisperProvider: SpeechProvider = {
         fs.writeFileSync(tempAudioPath, buffer);
         createdTempFile = true;
       }
-    } else if (tempAudioPath && fs.existsSync(tempAudioPath)) {
-      const buf = fs.readFileSync(tempAudioPath);
+    } else if (tempAudioPath && fs.existsSync(/*turbopackIgnore: true*/ tempAudioPath)) {
+      const buf = fs.readFileSync(/*turbopackIgnore: true*/ tempAudioPath);
       audioSha256 = crypto.createHash("sha256").update(buf).digest("hex");
     } else {
-      throw new SpeechProviderError("whisper-large-v3", "EMPTY_AUDIO", "No audio bytes or valid audio path provided.");
+      throw new SpeechProviderError(PROVIDER_ID, "EMPTY_AUDIO", "No audio bytes or valid audio path provided.");
     }
 
     try {
       const { stdout, stderr, exitCode } = await runPythonWorker(
         "whisper_worker.py",
-        ["--audio", tempAudioPath, "--model", DEFAULT_MODEL_ID],
+        ["--audio", tempAudioPath, "--model", LOCAL_MODEL_DIR, "--repo-id", REPO_ID],
         undefined,
         180_000,
       );
 
       if (exitCode !== 0 && !stdout.trim()) {
         throw new SpeechProviderError(
-          "whisper-large-v3",
+          PROVIDER_ID,
           "LOCAL_WORKER_ERROR",
           `Whisper local worker exited with code ${exitCode}: ${stderr}`,
         );
@@ -175,30 +203,28 @@ export const whisperProvider: SpeechProvider = {
         device?: string;
         deviceName?: string;
         error?: string;
+        errorCode?: string;
       };
 
       try {
         parsed = JSON.parse(stdout.trim());
       } catch (err) {
         throw new SpeechProviderError(
-          "whisper-large-v3",
+          PROVIDER_ID,
           "MALFORMED_RESPONSE",
           `Failed to parse Whisper worker JSON output: ${stdout || (err as Error).message}`,
         );
       }
 
       if (!parsed.success) {
-        throw new SpeechProviderError(
-          "whisper-large-v3",
-          "LOCAL_WORKER_ERROR",
-          parsed.error || "Whisper local transcription failed.",
-        );
+        const code = parsed.errorCode === "MODEL_NOT_FOUND" ? "MODEL_NOT_FOUND" : "LOCAL_WORKER_ERROR";
+        throw new SpeechProviderError(PROVIDER_ID, code, parsed.error || "Whisper local transcription failed.");
       }
 
       return {
-        provider: "whisper-large-v3",
-        providerName: "whisper-large-v3",
-        model: parsed.model || DEFAULT_MODEL_ID,
+        provider: PROVIDER_ID,
+        providerName: PROVIDER_ID,
+        model: parsed.model || REPO_ID,
         runtime: "local",
         transcript: parsed.transcript || "",
         confidence: null,
@@ -211,13 +237,13 @@ export const whisperProvider: SpeechProvider = {
           deviceName: parsed.deviceName,
           warmInferenceLatencyMs: parsed.warmInferenceLatencyMs,
           coldStartMs: parsed.coldStartMs,
-          mode: "local-open-weight",
+          mode: "local-filesystem-only",
         },
       };
     } finally {
-      if (createdTempFile && tempAudioPath && fs.existsSync(tempAudioPath)) {
+      if (createdTempFile && tempAudioPath && fs.existsSync(/*turbopackIgnore: true*/ tempAudioPath)) {
         try {
-          fs.unlinkSync(tempAudioPath);
+          fs.unlinkSync(/*turbopackIgnore: true*/ tempAudioPath);
         } catch {
           // ignore cleanup errors
         }
@@ -228,32 +254,50 @@ export const whisperProvider: SpeechProvider = {
   async checkHealth(): Promise<ProviderHealthResult> {
     const checkedAt = new Date().toISOString();
     const started = Date.now();
+
+    const localCheck = checkLocalModel(MODEL_REQUIREMENT);
+    if (!localCheck.available) {
+      return {
+        state: "model_not_found",
+        message: describeLocalModelProblem(MODEL_REQUIREMENT, localCheck),
+        checkedAt,
+        latencyMs: Date.now() - started,
+        model: REPO_ID,
+        runtime: "local",
+      };
+    }
+
     try {
-      const { stdout, exitCode } = await runPythonWorker("whisper_worker.py", ["--health"], undefined, 30_000);
+      const { stdout, exitCode } = await runPythonWorker(
+        "whisper_worker.py",
+        ["--health", "--model", LOCAL_MODEL_DIR, "--repo-id", REPO_ID],
+        undefined,
+        30_000,
+      );
       if (exitCode !== 0) {
         return {
           state: "unreachable",
           message: "Failed to run Whisper local health check.",
           checkedAt,
           latencyMs: Date.now() - started,
-          model: DEFAULT_MODEL_ID,
+          model: REPO_ID,
           runtime: "local",
         };
       }
 
       const parsed = JSON.parse(stdout.trim());
-      const state = parsed.status === "READY" ? "model_ready" : "model_download_required";
+      const state = parsed.status === "READY" ? "model_ready" : "model_not_found";
       const message =
         parsed.status === "READY"
-          ? `Whisper Large v3 is cached locally and ready for inference on ${parsed.deviceName || parsed.device}.`
-          : `Whisper Large v3 open weights will download from Hugging Face cache on first benchmark run. No API key required.`;
+          ? `Whisper Tiny is present at ${LOCAL_MODEL_DIR} and ready for inference on ${parsed.deviceName || parsed.device}.`
+          : describeLocalModelProblem(MODEL_REQUIREMENT, localCheck);
 
       return {
         state,
         message,
         checkedAt,
         latencyMs: Date.now() - started,
-        model: parsed.model || DEFAULT_MODEL_ID,
+        model: parsed.model || REPO_ID,
         runtime: "local",
         device: parsed.device,
       };
@@ -263,7 +307,7 @@ export const whisperProvider: SpeechProvider = {
         message: `Local Whisper check error: ${(err as Error).message}`,
         checkedAt,
         latencyMs: Date.now() - started,
-        model: DEFAULT_MODEL_ID,
+        model: REPO_ID,
         runtime: "local",
       };
     }

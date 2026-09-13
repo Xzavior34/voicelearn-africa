@@ -3,8 +3,8 @@
  *
  * Models evaluated:
  *   1. Model A: Intron Sahara v2.5 (sahara) — Remote WebSocket API
- *   2. Model B: OpenAI Whisper Large v3 (whisper-large-v3) — Local open weights (Apache-2.0)
- *   3. Model C: Meta Wav2Vec2 Large 960h (wav2vec2-large-960h) — Local open weights baseline (Apache-2.0)
+ *   2. Model B: OpenAI Whisper Tiny (whisper-tiny) — Local, filesystem-only (Apache-2.0)
+ *   3. Model C: Meta Wav2Vec2 Base 960h (wav2vec2-base-960h) — Local, filesystem-only baseline (Apache-2.0)
  *
  * ZERO PAID ASR API DEPENDENCIES.
  *
@@ -28,7 +28,7 @@ import { BENCHMARK_DATASET } from "../lib/benchmark/dataset/dataset";
 async function main() {
   console.log("=================================================================");
   console.log(" VoiceLearn Africa — Three-Model Code-Switch Benchmark Runner");
-  console.log(" Sahara v2.5 (Remote) vs. Whisper Large v3 (Local) vs. Wav2Vec2 (Local)");
+  console.log(" Sahara v2.5 (Remote) vs. Whisper Tiny (Local) vs. Wav2Vec2 Base 960h (Local)");
   console.log(" ZERO PAID ASR API DEPENDENCIES");
   console.log("=================================================================\n");
 
@@ -40,10 +40,10 @@ async function main() {
   console.log(`Loaded ${BENCHMARK_DATASET.length} total dataset records.`);
   const audioCount = BENCHMARK_DATASET.filter((s) => s.audioFilePath && existsSync(s.audioFilePath)).length;
   console.log(`Audio recordings present on disk: ${audioCount}`);
-  console.log("Models: [1] Intron Sahara v2.5  [2] OpenAI Whisper Large v3  [3] Meta Wav2Vec2 Large 960h\n");
+  console.log("Models: [1] Intron Sahara v2.5  [2] OpenAI Whisper Tiny  [3] Meta Wav2Vec2 Base 960h\n");
 
   console.log("=== Part 1: Speech-to-Text & Downstream Learning Evaluation ===");
-  const asr = await runAsrComparison(["sahara", "whisper-large-v3", "wav2vec2-large-960h"]);
+  const asr = await runAsrComparison(["sahara", "whisper-tiny", "wav2vec2-base-960h"]);
 
   for (const summary of asr.summaries) {
     console.log(
@@ -116,7 +116,7 @@ ${asr.summaries
 
 ## 3. Fair Comparison Notice
 
-Sahara is evaluated as the challenge-specific speech model via remote API. Whisper Large v3 and Wav2Vec2 Large 960h are independently executed local open-weight baselines under Apache-2.0 licenses. All models receive the exact same normalized audio (16kHz mono PCM16, SHA-256 verified) and are evaluated against identical human-reviewed reference transcripts.
+Sahara is evaluated as the challenge-specific speech model via remote API. Whisper Tiny and Wav2Vec2 Base 960h are independently executed local, filesystem-only baselines under Apache-2.0 licenses, chosen for constrained-hardware benchmarking. Wav2Vec2 Base 960h is an English/LibriSpeech baseline, not an African-language specialist. All models receive the exact same normalized audio (16kHz mono PCM16, SHA-256 verified) and are evaluated against identical human-reviewed reference transcripts.
 `;
 
   writeFileSync(join(reportsDir, "benchmark-report.md"), reportMd);

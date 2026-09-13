@@ -13,6 +13,7 @@
     "benchmark": "node --use-system-ca --import tsx scripts/run-benchmark.ts",
     "benchmark:all": "node --use-system-ca --import tsx scripts/run-benchmark.ts",
     "benchmark:health": "node --use-system-ca --import tsx scripts/benchmark-health.ts",
+    "benchmark:verify": "node --use-system-ca --import tsx scripts/verify-benchmark.ts",
     "sahara:health": "node --use-system-ca --import tsx scripts/sahara-health-check.ts"
   },
   "dependencies": {

@@ -1,16 +1,23 @@
 /**
- * Meta Wav2Vec2 Large 960h speech provider — LOCAL OPEN-WEIGHT INFERENCE.
+ * Meta Wav2Vec2 Base 960h speech provider — LOCAL, FILESYSTEM-ONLY INFERENCE.
  *
- * Source: facebook/wav2vec2-large-960h (Hugging Face / Transformers)
+ * Source: facebook/wav2vec2-base-960h (Hugging Face / Transformers)
  * License: Apache-2.0
  *
- * ZERO PAID API DEPENDENCIES.
- * Runs locally via Python Transformers inference worker (`scripts/asr/wav2vec2_worker.py`).
+ * ZERO PAID API DEPENDENCIES. ZERO NETWORK ACCESS AT INFERENCE TIME.
+ * Runs locally via Python Transformers inference worker
+ * (`scripts/asr/wav2vec2_worker.py`). Weights are loaded ONLY from the
+ * local filesystem path below — never downloaded on demand, and never
+ * silently resolved against a Hugging Face Hub ID. See
+ * LOCAL_MODEL_SETUP.md for exactly what to download and where to put it.
  *
  * RESEARCH BASELINE NOTE:
- * facebook/wav2vec2-large-960h is an English LibriSpeech model (~1.26 GB),
- * serving as an independent general English open-source ASR baseline to evaluate
- * how non-African specialized speech models degrade under African code-switching.
+ * facebook/wav2vec2-base-960h is trained on LibriSpeech — clean, read
+ * English audio. It is NOT an African-language or Pidgin specialist and
+ * is not tuned for code-switching in any way. It is included purely as
+ * an independent general-English ASR baseline, to show how a model with
+ * no African code-switching awareness performs on this benchmark
+ * relative to Sahara.
  */
 
 import { spawn } from "child_process";
@@ -25,9 +32,26 @@ import {
   LanguagePair,
   ProviderHealthResult,
 } from "../types";
+import { checkLocalModel, describeLocalModelProblem, LocalModelRequirement } from "../local-model";
+import { WAV2VEC2_BASE_REQUIRED_FILES, WEIGHT_FILE_CANDIDATES } from "../model-requirements";
 
+const PROVIDER_ID = "wav2vec2-base-960h";
 const WAV2VEC2_SUPPORTED_LANGUAGE_PAIRS: LanguagePair[] = ["en", "pcm", "en-pcm", "en-yo"];
-const DEFAULT_MODEL_ID = process.env.WAV2VEC2_MODEL_ID || "facebook/wav2vec2-large-960h";
+
+// Label only — informational, never used to fetch anything over the network.
+const REPO_ID = process.env.WAV2VEC2_MODEL_ID || "facebook/wav2vec2-base-960h";
+
+const LOCAL_MODEL_DIR = path.resolve(
+  /*turbopackIgnore: true*/ process.env.WAV2VEC2_LOCAL_MODEL_PATH || path.join(process.cwd(), "models", "wav2vec2-base-960h"),
+);
+
+const MODEL_REQUIREMENT: LocalModelRequirement = {
+  displayName: "Wav2Vec2 Base 960h",
+  repoId: REPO_ID,
+  localDir: LOCAL_MODEL_DIR,
+  requiredFiles: WAV2VEC2_BASE_REQUIRED_FILES,
+  weightFileCandidates: WEIGHT_FILE_CANDIDATES,
+};
 
 function getPythonExecutable(): string {
   if (process.env.PYTHON_PATH && fs.existsSync(process.env.PYTHON_PATH)) {
@@ -50,9 +74,9 @@ function runPythonWorker(
     const pythonExe = getPythonExecutable();
     const scriptPath = path.resolve(process.cwd(), "scripts", "asr", scriptName);
 
-    const child = spawn(pythonExe, [scriptPath, ...args], {
+    const child = spawn(/*turbopackIgnore: true*/ pythonExe, [scriptPath, ...args], {
       stdio: ["pipe", "pipe", "pipe"],
-      env: { ...process.env },
+      env: { ...process.env, HF_HUB_OFFLINE: "1", TRANSFORMERS_OFFLINE: "1" },
     });
 
     let stdout = "";
@@ -67,7 +91,7 @@ function runPythonWorker(
       } catch {
         // ignore
       }
-      reject(new SpeechProviderError("wav2vec2-large-960h", "TIMEOUT", `Wav2Vec2 worker timed out after ${timeoutMs}ms`));
+      reject(new SpeechProviderError(PROVIDER_ID, "TIMEOUT", `Wav2Vec2 worker timed out after ${timeoutMs}ms`));
     }, timeoutMs);
 
     child.stdout.on("data", (data) => {
@@ -84,7 +108,7 @@ function runPythonWorker(
       clearTimeout(timer);
       reject(
         new SpeechProviderError(
-          "wav2vec2-large-960h",
+          PROVIDER_ID,
           "LOCAL_WORKER_ERROR",
           `Failed to launch Python worker: ${err.message}. Ensure Python 3 with transformers and torch is installed.`,
         ),
@@ -106,12 +130,12 @@ function runPythonWorker(
 }
 
 export const wav2vec2Provider: SpeechProvider = {
-  id: "wav2vec2-large-960h",
-  name: "Meta Wav2Vec2 Large 960h (Local Baseline)",
-  model: DEFAULT_MODEL_ID,
+  id: PROVIDER_ID,
+  name: "Meta Wav2Vec2 Base 960h (Local Baseline, Filesystem-Only)",
+  model: REPO_ID,
   runtime: "local",
   get isLive(): boolean {
-    return true;
+    return checkLocalModel(MODEL_REQUIREMENT).available;
   },
   supportedLanguagePairs: WAV2VEC2_SUPPORTED_LANGUAGE_PAIRS,
 
@@ -119,9 +143,9 @@ export const wav2vec2Provider: SpeechProvider = {
     // Development/benchmark escape hatch
     if (input.devTranscriptOverride !== undefined) {
       return {
-        provider: "wav2vec2-large-960h",
-        providerName: "wav2vec2-large-960h (dev-override)",
-        model: DEFAULT_MODEL_ID,
+        provider: PROVIDER_ID,
+        providerName: `${PROVIDER_ID} (dev-override)`,
+        model: REPO_ID,
         runtime: "local",
         transcript: input.devTranscriptOverride,
         confidence: null,
@@ -129,6 +153,11 @@ export const wav2vec2Provider: SpeechProvider = {
         latencyMs: 0,
         success: true,
       };
+    }
+
+    const check = checkLocalModel(MODEL_REQUIREMENT);
+    if (!check.available) {
+      throw new SpeechProviderError(PROVIDER_ID, "MODEL_NOT_FOUND", describeLocalModelProblem(MODEL_REQUIREMENT, check));
     }
 
     let tempAudioPath = input.audioPath;
@@ -145,24 +174,24 @@ export const wav2vec2Provider: SpeechProvider = {
         fs.writeFileSync(tempAudioPath, buffer);
         createdTempFile = true;
       }
-    } else if (tempAudioPath && fs.existsSync(tempAudioPath)) {
-      const buf = fs.readFileSync(tempAudioPath);
+    } else if (tempAudioPath && fs.existsSync(/*turbopackIgnore: true*/ tempAudioPath)) {
+      const buf = fs.readFileSync(/*turbopackIgnore: true*/ tempAudioPath);
       audioSha256 = crypto.createHash("sha256").update(buf).digest("hex");
     } else {
-      throw new SpeechProviderError("wav2vec2-large-960h", "EMPTY_AUDIO", "No audio bytes or valid audio path provided.");
+      throw new SpeechProviderError(PROVIDER_ID, "EMPTY_AUDIO", "No audio bytes or valid audio path provided.");
     }
 
     try {
       const { stdout, stderr, exitCode } = await runPythonWorker(
         "wav2vec2_worker.py",
-        ["--audio", tempAudioPath, "--model", DEFAULT_MODEL_ID],
+        ["--audio", tempAudioPath, "--model", LOCAL_MODEL_DIR, "--repo-id", REPO_ID],
         undefined,
         180_000,
       );
 
       if (exitCode !== 0 && !stdout.trim()) {
         throw new SpeechProviderError(
-          "wav2vec2-large-960h",
+          PROVIDER_ID,
           "LOCAL_WORKER_ERROR",
           `Wav2Vec2 local worker exited with code ${exitCode}: ${stderr}`,
         );
@@ -178,30 +207,28 @@ export const wav2vec2Provider: SpeechProvider = {
         device?: string;
         deviceName?: string;
         error?: string;
+        errorCode?: string;
       };
 
       try {
         parsed = JSON.parse(stdout.trim());
       } catch (err) {
         throw new SpeechProviderError(
-          "wav2vec2-large-960h",
+          PROVIDER_ID,
           "MALFORMED_RESPONSE",
           `Failed to parse Wav2Vec2 worker JSON output: ${stdout || (err as Error).message}`,
         );
       }
 
       if (!parsed.success) {
-        throw new SpeechProviderError(
-          "wav2vec2-large-960h",
-          "LOCAL_WORKER_ERROR",
-          parsed.error || "Wav2Vec2 local transcription failed.",
-        );
+        const code = parsed.errorCode === "MODEL_NOT_FOUND" ? "MODEL_NOT_FOUND" : "LOCAL_WORKER_ERROR";
+        throw new SpeechProviderError(PROVIDER_ID, code, parsed.error || "Wav2Vec2 local transcription failed.");
       }
 
       return {
-        provider: "wav2vec2-large-960h",
-        providerName: "wav2vec2-large-960h",
-        model: parsed.model || DEFAULT_MODEL_ID,
+        provider: PROVIDER_ID,
+        providerName: PROVIDER_ID,
+        model: parsed.model || REPO_ID,
         runtime: "local",
         transcript: parsed.transcript || "",
         confidence: null,
@@ -214,13 +241,13 @@ export const wav2vec2Provider: SpeechProvider = {
           deviceName: parsed.deviceName,
           warmInferenceLatencyMs: parsed.warmInferenceLatencyMs,
           coldStartMs: parsed.coldStartMs,
-          mode: "local-open-weight-baseline",
+          mode: "local-filesystem-only-baseline",
         },
       };
     } finally {
-      if (createdTempFile && tempAudioPath && fs.existsSync(tempAudioPath)) {
+      if (createdTempFile && tempAudioPath && fs.existsSync(/*turbopackIgnore: true*/ tempAudioPath)) {
         try {
-          fs.unlinkSync(tempAudioPath);
+          fs.unlinkSync(/*turbopackIgnore: true*/ tempAudioPath);
         } catch {
           // ignore cleanup errors
         }
@@ -231,32 +258,50 @@ export const wav2vec2Provider: SpeechProvider = {
   async checkHealth(): Promise<ProviderHealthResult> {
     const checkedAt = new Date().toISOString();
     const started = Date.now();
+
+    const localCheck = checkLocalModel(MODEL_REQUIREMENT);
+    if (!localCheck.available) {
+      return {
+        state: "model_not_found",
+        message: describeLocalModelProblem(MODEL_REQUIREMENT, localCheck),
+        checkedAt,
+        latencyMs: Date.now() - started,
+        model: REPO_ID,
+        runtime: "local",
+      };
+    }
+
     try {
-      const { stdout, exitCode } = await runPythonWorker("wav2vec2_worker.py", ["--health"], undefined, 30_000);
+      const { stdout, exitCode } = await runPythonWorker(
+        "wav2vec2_worker.py",
+        ["--health", "--model", LOCAL_MODEL_DIR, "--repo-id", REPO_ID],
+        undefined,
+        30_000,
+      );
       if (exitCode !== 0) {
         return {
           state: "unreachable",
           message: "Failed to run Wav2Vec2 local health check.",
           checkedAt,
           latencyMs: Date.now() - started,
-          model: DEFAULT_MODEL_ID,
+          model: REPO_ID,
           runtime: "local",
         };
       }
 
       const parsed = JSON.parse(stdout.trim());
-      const state = parsed.status === "READY" ? "model_ready" : "model_download_required";
+      const state = parsed.status === "READY" ? "model_ready" : "model_not_found";
       const message =
         parsed.status === "READY"
-          ? `Wav2Vec2 Large 960h is cached locally and ready for inference on ${parsed.deviceName || parsed.device}.`
-          : `Wav2Vec2 Large 960h open weights (~1.26 GB) will download on first benchmark run. No API key required.`;
+          ? `Wav2Vec2 Base 960h is present at ${LOCAL_MODEL_DIR} and ready for inference on ${parsed.deviceName || parsed.device}.`
+          : describeLocalModelProblem(MODEL_REQUIREMENT, localCheck);
 
       return {
         state,
         message,
         checkedAt,
         latencyMs: Date.now() - started,
-        model: parsed.model || DEFAULT_MODEL_ID,
+        model: parsed.model || REPO_ID,
         runtime: "local",
         device: parsed.device,
       };
@@ -266,7 +311,7 @@ export const wav2vec2Provider: SpeechProvider = {
         message: `Local Wav2Vec2 check error: ${(err as Error).message}`,
         checkedAt,
         latencyMs: Date.now() - started,
-        model: DEFAULT_MODEL_ID,
+        model: REPO_ID,
         runtime: "local",
       };
     }

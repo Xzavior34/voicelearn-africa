@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
-import { runAsrComparison, runIntentAccuracyBaseline } from "@/lib/benchmark/runner";
+import fs from "fs";
+import path from "path";
+import { runIntentAccuracyBaseline } from "@/lib/benchmark/runner";
+import type { AsrProviderSummary, AsrSampleResult } from "@/lib/benchmark/runner";
 import { BENCHMARK_DATASET } from "@/lib/benchmark/dataset/dataset";
 import SampleInspector from "@/components/SampleInspector";
 import DatasetExplorer from "@/components/DatasetExplorer";
@@ -7,15 +10,61 @@ import DatasetExplorer from "@/components/DatasetExplorer";
 export const metadata: Metadata = {
   title: "VoiceLearn Research Lab — Multi-Model Code-Switch Benchmark",
   description:
-    "Empirical evaluation of Intron Sahara v2.5, OpenAI Whisper Large v3, and Meta Wav2Vec2 Large 960h on African code-switched educational speech.",
+    "Empirical evaluation of Intron Sahara v2.5, OpenAI Whisper Tiny, and Meta Wav2Vec2 Base 960h on African code-switched educational speech.",
 };
 
-export const dynamic = "force-dynamic";
+/**
+ * This page intentionally does NOT call runAsrComparison() live. Doing so
+ * on every page load would trigger a real (potentially billable) Sahara
+ * WebSocket inference call, plus a Python subprocess spawn for the local
+ * models, on every single visitor — slow, costly, and fragile in a
+ * serverless deployment that has no Python runtime available at all.
+ *
+ * Instead, this page reads the last committed benchmark run from
+ * benchmark/results/ — generated via `npm run benchmark` (see
+ * scripts/run-benchmark.ts) or `npm run benchmark:verify` — and renders
+ * that static evidence. A separate, explicit developer action
+ * (`npm run benchmark`) is how you refresh these numbers; opening this
+ * page never does it implicitly.
+ */
+interface CommittedBenchmark {
+  metadata: { runId: string; timestamp: string; datasetVersion?: string; datasetSampleCount?: number; models: string[] };
+  summaries: AsrProviderSummary[];
+  intentBaseline?: { accuracy: number; correct: number; totalSamples: number; topicAccuracy: number };
+}
+
+function loadCommittedBenchmark(): { asr: CommittedBenchmark; perSample: AsrSampleResult[] } | null {
+  try {
+    const resultsDir = path.join(process.cwd(), "benchmark", "results");
+    const summaryRaw = fs.readFileSync(path.join(resultsDir, "summary.json"), "utf-8");
+    const rawResultsRaw = fs.readFileSync(path.join(resultsDir, "raw-results.json"), "utf-8");
+    return { asr: JSON.parse(summaryRaw), perSample: JSON.parse(rawResultsRaw) };
+  } catch {
+    return null;
+  }
+}
 
 export default async function BenchmarkPage() {
-  const asr = await runAsrComparison(["sahara", "whisper-large-v3", "wav2vec2-large-960h"]);
-  const intent = runIntentAccuracyBaseline();
-  const evaluationDate = new Date().toISOString().slice(0, 10);
+  const committed = loadCommittedBenchmark();
+  const intent = runIntentAccuracyBaseline(); // pure, deterministic, no I/O or network — safe to compute per request
+
+  if (!committed) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-20 text-center">
+        <h1 className="font-display text-3xl text-ink font-semibold">No committed benchmark run yet</h1>
+        <p className="text-ink-soft mt-3">
+          This page renders the last committed run from <code>benchmark/results/</code>. Run{" "}
+          <code>npm run benchmark</code> (or <code>npm run benchmark:verify</code>) and commit the resulting files to
+          populate this page.
+        </p>
+      </div>
+    );
+  }
+
+  const asr = { summaries: committed.asr.summaries, perSample: committed.perSample, metadata: committed.asr.metadata };
+  const evaluationDate = committed.asr.metadata.timestamp
+    ? new Date(committed.asr.metadata.timestamp).toISOString().slice(0, 10)
+    : "unknown";
 
   const saharaSummary = asr.summaries.find((s) => s.provider === "sahara");
 
@@ -41,8 +90,12 @@ export default async function BenchmarkPage() {
           <span>•</span>
           <span>4 Linguistic Tiers (en, pcm, en-pcm, en-yo)</span>
           <span>•</span>
-          <span>Last generated: {evaluationDate}</span>
+          <span>Committed run: {evaluationDate} (run {asr.metadata.runId})</span>
         </div>
+        <p className="text-[11px] text-ink-muted italic">
+          This is a committed, static evidence snapshot — opening this page does not trigger a new Sahara call or
+          local model run. Regenerate with <code>npm run benchmark</code>.
+        </p>
       </div>
 
       {/* 2. Model Architecture Cards */}
@@ -77,10 +130,10 @@ export default async function BenchmarkPage() {
                 LOCAL
               </span>
             </div>
-            <h3 className="font-display text-xl text-ink font-semibold mt-2">OpenAI Whisper Large v3</h3>
-            <p className="text-xs text-ink-soft font-mono mt-0.5">Open-weight local inference (Apache-2.0)</p>
+            <h3 className="font-display text-xl text-ink font-semibold mt-2">OpenAI Whisper Tiny</h3>
+            <p className="text-xs text-ink-soft font-mono mt-0.5">Local, filesystem-only inference (Apache-2.0)</p>
             <p className="text-xs text-ink-soft mt-2 leading-relaxed">
-              Independent open-weight multilingual ASR baseline run locally via Python Transformers without paid API dependencies.
+              Independent lightweight multilingual ASR baseline, run locally via Python Transformers with no paid API dependency, chosen for constrained-hardware benchmarking.
             </p>
           </div>
           <div className="pt-3 border-t border-line/60 flex items-center justify-between text-xs font-mono text-ink-muted">
@@ -98,10 +151,10 @@ export default async function BenchmarkPage() {
                 LOCAL
               </span>
             </div>
-            <h3 className="font-display text-xl text-ink font-semibold mt-2">Meta Wav2Vec2 Large 960h</h3>
-            <p className="text-xs text-ink-soft font-mono mt-0.5">Open-weight local inference (Apache-2.0)</p>
+            <h3 className="font-display text-xl text-ink font-semibold mt-2">Meta Wav2Vec2 Base 960h</h3>
+            <p className="text-xs text-ink-soft font-mono mt-0.5">Local, filesystem-only inference (Apache-2.0)</p>
             <p className="text-xs text-ink-soft mt-2 leading-relaxed">
-              English LibriSpeech benchmark baseline (~1.26 GB) evaluating general English ASR degradation on African code-switched queries.
+              English LibriSpeech benchmark baseline — NOT an African-language or Pidgin specialist — evaluating general English ASR degradation on African code-switched queries.
             </p>
           </div>
           <div className="pt-3 border-t border-line/60 flex items-center justify-between text-xs font-mono text-ink-muted">
@@ -115,7 +168,7 @@ export default async function BenchmarkPage() {
       <section className="rounded-2xl border border-line bg-paper-card p-5 text-xs sm:text-sm text-ink-soft leading-relaxed">
         <p className="font-semibold text-ink mb-1">Fair Comparison Notice</p>
         <p>
-          Sahara is evaluated as the challenge-specific speech model. Whisper Large v3 and Wav2Vec2 Large 960h are independently run local open-weight baselines. All models receive the same normalized audio (16kHz mono PCM16, SHA-256 verified) and are evaluated against the same human-reviewed references.
+          Sahara is evaluated as the challenge-specific speech model. Whisper Tiny and Wav2Vec2 Base 960h are independently run local, filesystem-only baselines chosen for constrained-hardware benchmarking. All models receive the same normalized audio (16kHz mono PCM16, SHA-256 verified) and are evaluated against the same human-reviewed references. As of the run shown here, only {BENCHMARK_DATASET.filter((s) => s.audioFilePath).length} of {BENCHMARK_DATASET.length} samples has a physical audio recording, and it is not code-switched — see the Sample Inspector below for exactly which sample was measured.
         </p>
       </section>
 
@@ -184,10 +237,10 @@ export default async function BenchmarkPage() {
             <strong className="text-ink">Code-Switch Preservation:</strong> Intron Sahara v2.5 accurately transcribes West African Pidgin discourse markers (<code className="text-ink font-mono">dey</code>, <code className="text-ink font-mono">wetin</code>, <code className="text-ink font-mono">shey</code>, <code className="text-ink font-mono">abeg</code>) without anglicizing them, preserving the semantic payload required for intent classification.
           </li>
           <li>
-            <strong className="text-ink">Open-Source Multilingual Baseline:</strong> Whisper Large v3 operates locally under Apache-2.0. On Standard English utterances it achieves high precision, while exhibiting predictable acoustic phonetic substitutions on regional Nigerian Pidgin syntax.
+            <strong className="text-ink">Open-Source Multilingual Baseline:</strong> Whisper Tiny operates locally under Apache-2.0, chosen as the lightweight checkpoint for constrained-hardware benchmarking. As a smaller model than Whisper Large, it is expected to show higher error rates overall — the numbers below are the actual measured results, not an assumed outcome.
           </li>
           <li>
-            <strong className="text-ink">General English Baseline Degradation:</strong> Wav2Vec2 Large 960h was trained on LibriSpeech (clean English read speech). It serves as an empirical demonstration of how non-localized speech models fail when exposed to intra-sentential African code-switching.
+            <strong className="text-ink">General English Baseline Degradation:</strong> Wav2Vec2 Base 960h was trained on LibriSpeech (clean English read speech) and is not tuned for African languages or code-switching in any way. It serves as an empirical demonstration of how a non-localized speech model performs when exposed to this benchmark&apos;s audio.
           </li>
         </ul>
       </section>

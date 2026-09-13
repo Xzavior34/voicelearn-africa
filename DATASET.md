@@ -53,14 +53,32 @@ export interface BenchmarkSample {
 - **Format:** PCM16 Mono 16kHz WAV
 - **Duration:** 16.5 seconds
 - **SHA-256 Hash:** `94ed180cabf3328fa6aed16068e4f92e0b11d0e61676e680966cdcb4806cf15a`
+- **Category:** `standard_english` — **this recording is NOT code-switched.**
 - **Live Evaluated Engine:** Intron Sahara v2.5 (`sahara`)
-- **Measured WER:** 7.1%
-- **Measured CER:** 6.3%
-- **Downstream Tutor Concept Match:** 100% (`signed-multiplication`)
+- **Historical measurement (prior authenticated session, not reproducible in every environment):** this repository's own docs disagree with each other on the exact figure — some (`BENCHMARK_RESULTS.md`, `DEMO_SCRIPT.md`, `FINAL_PRODUCT_AUDIT.md`, `FINAL_SUBMISSION_READINESS.md`) cite WER 3.6% / CER 0.8%; an earlier generated `benchmark/results/summary.json` (since deleted for being stale and inconsistent with the current model configuration) showed WER 7.1% / CER 6.3% for the same file. Both came from real Sahara API calls at different times — Sahara's output is not perfectly deterministic run-to-run, and this repo's docs were not kept in sync across runs. **Do not cite a specific number in the submission until you've re-run `npm run benchmark` with a real `SAHARA_API_KEY` and taken the number from that fresh, single, current run.**
 
 ---
 
-## 4. Ethical Standards & Consent
+## 4. PENDING HUMAN RECORDING — genuine code-switched audio
+
+**As of this writing, zero physical code-switched audio recordings exist.** All Pidgin/Yoruba/code-switching dataset entries are text-only fixtures (see the warning at the top of `lib/benchmark/dataset/types.ts`). The challenge asks for code-switched audio benchmarking specifically, so this is a real evidence gap, not a cosmetic one.
+
+**Action required from a human, not from an AI session:** record one short, genuine English/Nigerian-Pidgin sample yourself. Suggested content (adjust wording naturally, don't read it robotically):
+
+> "I understand say negative times negative dey give positive, but why exactly e dey work like that?"
+
+Steps:
+1. Record it any way that's convenient — a voice memo app, or the existing microphone capture already built into `/learn`.
+2. Save it as a 16kHz mono PCM16 WAV (or note its actual format/sample rate if different — the runner reports what it actually reads).
+3. Place the file at `benchmark/audio/learner_recording_02_codeswitch.wav`.
+4. Add a corresponding entry to `RAW_SAMPLES` in `lib/benchmark/dataset/dataset.ts` with `audioFilePath` pointing at that file, `category: "educational_code_switching"` (or `nigerian_pidgin`, whichever fits what you actually said), and a `referenceTranscript` that's an honest transcript of what you actually said.
+5. Re-run `npm run benchmark` (with `SAHARA_API_KEY` set, and the two local models' files complete) to get a real, measured code-switched result.
+
+**Until this is done, this project's code-switching evidence is text-fixture-only. Do not describe it as audio evidence in the submission.**
+
+---
+
+## 5. Ethical Standards & Consent
 
 1. **Adult Informed Consent:** All voice audio samples are recorded strictly with explicit informed consent from adult participants for open benchmark evaluation.
 2. **Child Safeguarding:** Minor voices are never recorded or stored.

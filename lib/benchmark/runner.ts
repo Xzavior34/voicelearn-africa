@@ -20,7 +20,13 @@ export interface AsrSampleResult {
   providerName: string;
   model: string;
   runtime: "remote-api" | "local";
-  status: "measured" | "requires_api_access" | "local_device_test_required" | "audio_dataset_required" | "error";
+  status:
+    | "measured"
+    | "requires_api_access"
+    | "model_not_found"
+    | "local_device_test_required"
+    | "audio_dataset_required"
+    | "error";
   referenceTranscript: string;
   hypothesisTranscript: string | null;
   languagePair: string;
@@ -97,7 +103,7 @@ function computeAudioHash(buffer: Buffer): string {
 }
 
 export async function runAsrComparison(
-  providerNames: string[] = ["sahara", "whisper-large-v3", "wav2vec2-large-960h"],
+  providerNames: string[] = ["sahara", "whisper-tiny", "wav2vec2-base-960h"],
 ): Promise<BenchmarkRunOutput> {
   const perSample: AsrSampleResult[] = [];
   const runId = `run-${Date.now()}`;
@@ -122,8 +128,17 @@ export async function runAsrComparison(
       }
 
       if (!audioBytes) {
-        // If the provider has live credentials, the bottleneck is real human audio recording
-        const status = provider.isLive ? "audio_dataset_required" : "requires_api_access";
+        // If the provider is genuinely live (credentialed API, or local model
+        // files actually present), the bottleneck is real human audio
+        // recording. If it isn't live, distinguish WHY: a remote API without
+        // credentials is "requires_api_access"; a local model whose weight
+        // files are not on disk is "model_not_found" — never presented as a
+        // successful measurement either way.
+        const status = provider.isLive
+          ? "audio_dataset_required"
+          : provider.runtime === "local"
+            ? "model_not_found"
+            : "requires_api_access";
         perSample.push({
           sampleId: sample.id,
           provider: providerName,
@@ -146,7 +161,9 @@ export async function runAsrComparison(
           audioHash: null,
           errorMessage: provider.isLive
             ? "No physical audio recording on disk for this sample (AUDIO_DATASET_REQUIRED)."
-            : `Provider ${provider.name || providerName} is not configured (REQUIRES_API_ACCESS).`,
+            : provider.runtime === "local"
+              ? `Local model files for ${provider.name || providerName} were not found on disk (MODEL_NOT_FOUND). See LOCAL_MODEL_SETUP.md.`
+              : `Provider ${provider.name || providerName} is not configured (REQUIRES_API_ACCESS).`,
         });
         continue;
       }
@@ -188,13 +205,20 @@ export async function runAsrComparison(
       } catch (err) {
         const isConfigError = err instanceof SpeechProviderError && err.code === "REQUIRES_API_ACCESS";
         const isAudioMissing = err instanceof SpeechProviderError && err.code === "EMPTY_AUDIO";
+        const isModelMissing = err instanceof SpeechProviderError && err.code === "MODEL_NOT_FOUND";
         perSample.push({
           sampleId: sample.id,
           provider: providerName,
           providerName: provider.name || providerName,
           model: modelName,
           runtime: provider.runtime || (providerName === "sahara" ? "remote-api" : "local"),
-          status: isConfigError ? "requires_api_access" : isAudioMissing ? "local_device_test_required" : "error",
+          status: isConfigError
+            ? "requires_api_access"
+            : isModelMissing
+              ? "model_not_found"
+              : isAudioMissing
+                ? "local_device_test_required"
+                : "error",
           referenceTranscript: sample.referenceTranscript,
           hypothesisTranscript: null,
           languagePair: sample.languagePair,
@@ -230,10 +254,14 @@ export async function runAsrComparison(
         ? (audioAvailableCount === 0
             ? "Physical audio recordings not present on disk (AUDIO_DATASET_REQUIRED)"
             : "Some audio samples could not be processed")
-        : `Provider ${provider.name || providerName} is not configured (REQUIRES_API_ACCESS)`;
+        : provider.runtime === "local"
+          ? `Local model files for ${provider.name || providerName} not found on disk (MODEL_NOT_FOUND). See LOCAL_MODEL_SETUP.md.`
+          : `Provider ${provider.name || providerName} is not configured (REQUIRES_API_ACCESS)`;
       const statusLabel = isLive
         ? (measured.length > 0 ? "VERIFIED" : "LIVE_READY (AUDIO_DATASET_REQUIRED)")
-        : "BLOCKED (REQUIRES_API_ACCESS)";
+        : provider.runtime === "local"
+          ? "BLOCKED (MODEL_NOT_FOUND)"
+          : "BLOCKED (REQUIRES_API_ACCESS)";
 
       const mean = (values: (number | null)[]) => {
         const nums = values.filter((v): v is number => v !== null);
