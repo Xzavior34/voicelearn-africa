@@ -3,7 +3,8 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useSpeechRecorder } from "@/lib/client/useSpeechRecorder";
 import { createTurnGuard } from "@/lib/client/turnGuard";
-import { deriveLearningStage, LearningStage } from "@/lib/client/learningStage";
+import { deriveLearningStage, deriveJourneyStep, LearningStage } from "@/lib/client/learningStage";
+import { JourneyIndicator } from "@/components/JourneyIndicator";
 import { VoiceOrb, VoiceOrbState } from "@/components/VoiceOrb";
 import { LearningSession, TutorResponse, AssessmentResult, createInitialSession } from "@/lib/tutor/schema";
 
@@ -266,25 +267,22 @@ export default function VoiceTutor({ initialPrompt }: { initialPrompt?: string }
     retry: "Almost — let's look at it another way",
   };
 
+  const journeyStep = deriveJourneyStep(stage, isFollowUp);
+
   return (
     <div className="w-full max-w-2xl mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col gap-8">
-      {/* Minimal session indicator — not "Step 3 of 10", just a quiet sense of being inside a session */}
-      <div className="flex items-center justify-between text-xs text-ink-muted">
-        <span className="inline-flex items-center gap-2">
-          {history.length > 0 && (
-            <span className="flex items-center gap-1" aria-hidden="true">
-              {Array.from({ length: Math.min(history.length, 5) }).map((_, i) => (
-                <span key={i} className="h-1.5 w-1.5 rounded-full bg-indigo-soft" />
-              ))}
-            </span>
-          )}
-          <span>Learning session</span>
-        </span>
+      {/* Minimal session indicator — a quiet lesson journey, not "Step 3 of 10" */}
+      <div className="flex items-center justify-between">
+        {history.length > 0 ? (
+          <JourneyIndicator current={journeyStep} />
+        ) : (
+          <span className="text-xs text-ink-muted">Learning session</span>
+        )}
         {history.length > 0 && (
           <button
             type="button"
             onClick={resetSession}
-            className="text-ink-muted hover:text-rust font-medium -my-2.5 -mr-2 py-2.5 px-2 min-h-[44px] inline-flex items-center"
+            className="text-xs text-ink-muted hover:text-rust font-medium -my-2.5 -mr-2 py-2.5 px-2 min-h-[44px] inline-flex items-center"
           >
             Start over
           </button>

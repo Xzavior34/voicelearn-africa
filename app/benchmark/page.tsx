@@ -18,22 +18,58 @@ export default async function BenchmarkPage() {
   const evaluationDate = new Date().toISOString().slice(0, 10);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-20 flex flex-col gap-14">
-      {/* Header */}
-      <div className="flex flex-col gap-4">
-        <p className="text-xs uppercase tracking-[0.16em] text-indigo font-semibold">Research &amp; evaluation</p>
-        <h1 className="font-display text-3xl sm:text-5xl text-ink font-medium tracking-tight">
-          Speech &amp; learning evaluation
-        </h1>
-        <p className="text-ink-soft text-base sm:text-lg leading-relaxed prose-measure">
-          We evaluate how reliably voice input is understood across language combinations,
-          acoustic conditions, and educational contexts &mdash; and we report what has and hasn&apos;t
-          actually been measured yet.
-        </p>
-        <p className="text-xs text-ink-muted pt-2 border-t border-line">
-          Dataset: {BENCHMARK_DATASET.length} hand-authored samples &middot; Last generated: {evaluationDate}
-        </p>
-      </div>
+    // A deliberately distinct surface from the rest of the (light,
+    // consumer-facing) product — a research environment, not the
+    // learning experience. This overrides the shared semantic color
+    // variables for this subtree only (every `bg-paper`/`text-ink`/
+    // `border-line` utility already used below picks up these values
+    // automatically); it reuses the same dark palette validated in an
+    // earlier pass rather than inventing a third color system, and the
+    // brand accents (indigo/violet/cyan/leaf/rust) stay the same hex
+    // values as the rest of the site so it still reads as one product.
+    <div
+      style={{
+        "--paper": "#0b0f1a",
+        "--paper-card": "#11172a",
+        "--paper-elevated": "#161d35",
+        "--paper-subtle": "#0e1322",
+        "--ink": "#f1f3fa",
+        "--ink-soft": "#b7bfda",
+        "--ink-muted": "#8890ac",
+        "--ink-light": "#5b6480",
+        "--line": "rgba(255,255,255,0.1)",
+        "--line-subtle": "rgba(255,255,255,0.06)",
+        "--line-dark": "rgba(255,255,255,0.18)",
+        // leaf/rust are also overridden here: the shared light-theme
+        // values were just darkened for AA contrast on a *white*
+        // background (see the accessibility fix in this same pass) and
+        // would fail contrast again against this page's dark
+        // background — verified below, not assumed.
+        "--leaf": "#34d399", // 9.95:1 on this page's #0b0f1a background
+        "--leaf-dark": "#34d399",
+        "--rust": "#fb7185", // 7.11:1 on this page's #0b0f1a background
+      } as React.CSSProperties}
+      className="bg-paper"
+    >
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-20 flex flex-col gap-14">
+        {/* Header */}
+        <div className="flex flex-col gap-4">
+          <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-cyan font-semibold">
+            VoiceLearn Research
+          </p>
+          <h1 className="font-display text-3xl sm:text-5xl text-ink font-medium tracking-tight">
+            Speech &amp; learning evaluation
+          </h1>
+          <p className="text-ink-soft text-base sm:text-lg leading-relaxed prose-measure">
+            We evaluate how reliably voice input is understood across language combinations,
+            acoustic conditions, and educational contexts &mdash; and we report what has and hasn&apos;t
+            actually been measured yet.
+          </p>
+          <p className="text-xs text-ink-muted pt-2 border-t border-line font-mono">
+            Dataset: {BENCHMARK_DATASET.length} hand-authored samples &middot; Last generated: {evaluationDate}
+          </p>
+        </div>
+
 
       {/* Headline numbers, precisely labeled */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
@@ -244,6 +280,7 @@ export default async function BenchmarkPage() {
           <code className="px-3 py-1.5 rounded-lg bg-paper-elevated border border-line text-ink">npm run benchmark</code>
           <code className="px-3 py-1.5 rounded-lg bg-paper-elevated border border-line text-ink">npm run sahara:health</code>
         </div>
+      </div>
       </div>
     </div>
   );

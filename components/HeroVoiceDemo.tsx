@@ -38,7 +38,7 @@ export default function HeroVoiceDemo() {
   }, [reducedMotion]);
 
   return (
-    <div className="relative rounded-3xl border border-line bg-paper-card/60 backdrop-blur-sm shadow-[0_20px_60px_-15px_rgba(99,102,241,0.25)] overflow-hidden">
+    <div className="relative rounded-3xl border border-line bg-paper-card shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_32px_-12px_rgba(91,92,226,0.18)] overflow-hidden">
       {/* Ambient glow behind the orb, contained to this card only */}
       <div
         className="absolute top-0 left-1/2 -translate-x-1/2 h-64 w-64 rounded-full blur-[80px] opacity-30 pointer-events-none"

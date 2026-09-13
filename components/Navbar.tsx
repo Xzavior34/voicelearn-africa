@@ -18,14 +18,14 @@ export default function Navbar() {
 
   return (
     <header className="sticky top-0 z-40 pt-3 sm:pt-4 px-3 sm:px-6">
-      <div className="max-w-5xl mx-auto rounded-2xl border border-line bg-paper-card/80 backdrop-blur-xl shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+      <div className="max-w-5xl mx-auto rounded-2xl border border-line bg-paper-card/90 backdrop-blur-xl shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-8px_rgba(16,24,40,0.08)]">
         <div className="h-14 sm:h-16 px-3 sm:px-5 flex items-center justify-between">
           {/* Brand mark */}
           <Link
             href="/"
             className="group flex items-center gap-2.5 focus-visible:rounded-lg"
           >
-            <div className="h-8 w-8 rounded-lg bg-indigo flex items-center justify-center text-paper shadow-[0_0_16px_-2px_var(--indigo)] group-hover:bg-indigo-soft transition-colors">
+            <div className="h-8 w-8 rounded-lg bg-indigo flex items-center justify-center text-paper shadow-[0_0_14px_-3px_color-mix(in_srgb,var(--indigo)_55%,transparent)] group-hover:bg-indigo-soft transition-colors">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
                 <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
@@ -67,7 +67,7 @@ export default function Navbar() {
           <div className="hidden sm:flex items-center">
             <Link
               href="/learn"
-              className="inline-flex items-center gap-2 rounded-full bg-indigo text-paper px-4 py-2 text-sm font-medium hover:bg-indigo-soft transition-colors shadow-[0_0_18px_-4px_var(--indigo)]"
+              className="inline-flex items-center gap-2 rounded-full bg-indigo text-paper px-4 py-2 text-sm font-medium hover:bg-indigo-soft transition-colors shadow-[0_0_16px_-4px_color-mix(in_srgb,var(--indigo)_55%,transparent)]"
             >
               Start learning
             </Link>

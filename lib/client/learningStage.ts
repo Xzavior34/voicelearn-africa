@@ -94,3 +94,34 @@ export function deriveLearningStage({
 
   return "teaching";
 }
+
+/** The four-step lesson journey shown as a subtle progression indicator
+ * ("Understand → Try → Check → Master"). This is purely a coarser view
+ * of the same `LearningStage` above — not a second state machine, and
+ * not persisted or tracked across topics; it resets naturally every
+ * time `stage` returns to "curious" because a new question starts a
+ * new journey. */
+export type JourneyStep = "understand" | "try" | "check" | "master";
+
+export const JOURNEY_STEPS: readonly JourneyStep[] = ["understand", "try", "check", "master"];
+
+export function deriveJourneyStep(stage: LearningStage, isFollowUp: boolean): JourneyStep {
+  switch (stage) {
+    case "curious":
+    case "listening":
+    case "understanding":
+      return "understand";
+    case "teaching":
+    case "retry":
+      return "try";
+    case "assessing":
+      return "check";
+    case "success":
+      return "master";
+    case "error":
+      // An error doesn't advance or regress the journey — it's most
+      // often a failed answer submission (still "trying") or a failed
+      // new-question submission (still "understanding").
+      return isFollowUp ? "try" : "understand";
+  }
+}

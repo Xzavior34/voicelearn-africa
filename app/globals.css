@@ -1,53 +1,65 @@
 @import "tailwindcss";
 
 :root {
-  /* Surface & Canvas — deep midnight navy, not paper */
-  --paper: #070a14;
-  --paper-card: #0d1222;
-  --paper-elevated: #11182b;
-  --paper-subtle: #0b0f1d;
+  /* Surface & Canvas — clean premium white/near-white, not paper/cream */
+  --paper: #fafbff;
+  --paper-card: #ffffff;
+  --paper-elevated: #f5f7fc;
+  --paper-subtle: #eef1f7;
 
-  /* Typography & Text — near-white down to slate-blue */
-  --ink: #f1f3fa;
-  --ink-soft: #b7bfda;
-  --ink-muted: #8890ac;
-  --ink-light: #565f7e;
+  /* Typography & Text — deep neutral ink down to muted slate.
+     ink-muted was originally #98A2B3 (2.49:1 on --paper — fails WCAG AA
+     for the small-text captions it's actually used for across the app).
+     Darkened to a value that clears 4.5:1, verified below. */
+  --ink: #111827;
+  --ink-soft: #667085;
+  --ink-muted: #69748a; /* 4.55:1 on #FAFBFF, was 2.49:1 */
+  --ink-light: #a8afc0;
 
   /* Primary identity: electric indigo */
-  --indigo: #6366f1;
-  --indigo-dark: #4338ca;
-  --indigo-soft: #818cf8;
-  --indigo-light: #1b1f3b;
-  --indigo-border: #33396b;
+  --indigo: #5b5ce2;
+  --indigo-dark: #4341c2;
+  --indigo-soft: #7c7df0;
+  --indigo-light: #eef0fe;
+  --indigo-border: #d9dbfa;
 
-  /* Secondary accent: violet (was the warm terracotta/ochre role) */
-  --ochre: #8b5cf6;
-  --ochre-warm: #a78bfa;
-  --ochre-light: #221a3d;
-  --ochre-border: #3d2e66;
-  --terracotta: #7c3aed;
+  /* Secondary accent: violet */
+  --ochre: #7c5cfc;
+  --ochre-warm: #9678fd;
+  --ochre-light: #f1ecfe;
+  --ochre-border: #ddd0fc;
+  --terracotta: #6d3af0;
 
   /* Voice/activity accent: cyan — reserved for live listening state */
-  --cyan: #22d3ee;
-  --cyan-soft: #67e8f9;
-  --cyan-light: #0b2530;
-  --cyan-border: #164452;
+  --cyan: #22c7e8;
+  --cyan-soft: #6fdbef;
+  --cyan-light: #e3f9fc;
+  --cyan-border: #b8ecf5;
 
-  /* Success / verified states: emerald */
-  --leaf: #34d399;
-  --leaf-dark: #10b981;
-  --leaf-light: #10241c;
-  --leaf-border: #1c4a38;
+  /* Success / verified states.
+     --leaf was #16A34A (3.19:1 on --paper — fails AA for the small
+     text labels it's actually used for, e.g. "Live evaluation").
+     Darkened; --leaf-dark darkened further so the two tiers stay
+     distinguishable while both clearing 4.5:1 (verified below). */
+  --leaf: #15803d; /* 4.85:1 on #FAFBFF, was 3.19:1 */
+  --leaf-dark: #106b32; /* 6.40:1 on #FAFBFF */
+  --leaf-light: #ecfdf3;
+  --leaf-border: #bbf0d1;
 
-  /* Error / misconceptions: coral */
-  --rust: #fb7185;
-  --rust-light: #2b1418;
-  --rust-border: #4a2028;
+  /* Error / misconceptions.
+     --rust was #EF4444 (3.64:1 on --paper — fails AA for the real
+     error-message text it's used for, e.g. "I couldn't hear that
+     clearly"). Darkened to clear 4.5:1 (verified below); still reads
+     clearly as a red/error hue, and white-on-rust (used for the
+     VoiceOrb's error state) still clears AA at 4.83:1. */
+  --rust: #dc2626; /* 4.67:1 on #FAFBFF, was 3.64:1 */
+  --rust-light: #fff1f2;
+  --rust-border: #ffd4d8;
 
-  /* Structure & borders — translucent hairlines on dark surfaces */
-  --line: rgba(255, 255, 255, 0.1);
-  --line-subtle: rgba(255, 255, 255, 0.06);
-  --line-dark: rgba(255, 255, 255, 0.18);
+  /* Structure & borders — actual light neutral lines on a white surface */
+  --line: #e6eaf0;
+  --line-subtle: #eef1f5;
+  --line-dark: #d8dee9;
 }
 
 @theme inline {
@@ -105,7 +117,7 @@
 html {
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {

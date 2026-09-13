@@ -100,7 +100,7 @@ export default function ProgressPage() {
       <div className="pt-4 border-t border-line">
         <Link
           href="/learn"
-          className="inline-flex items-center gap-2 rounded-full bg-indigo text-paper px-6 py-3 text-sm font-medium hover:bg-indigo-soft transition-colors shadow-[0_0_24px_-6px_var(--indigo)]"
+          className="inline-flex items-center gap-2 rounded-full bg-indigo text-paper px-6 py-3 text-sm font-medium hover:bg-indigo-soft transition-colors shadow-[0_0_20px_-6px_color-mix(in_srgb,var(--indigo)_55%,transparent)]"
         >
           Continue learning
         </Link>

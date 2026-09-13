@@ -26,7 +26,7 @@ export default function Home() {
               <div className="flex flex-wrap items-center gap-3.5 pt-2">
                 <Link
                   href="/learn"
-                  className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo text-paper px-6 py-3.5 text-sm sm:text-base font-medium hover:bg-indigo-soft transition-colors shadow-[0_0_28px_-6px_var(--indigo)]"
+                  className="inline-flex items-center justify-center gap-2 rounded-full bg-indigo text-paper px-6 py-3.5 text-sm sm:text-base font-medium hover:bg-indigo-soft transition-colors shadow-[0_0_22px_-6px_color-mix(in_srgb,var(--indigo)_55%,transparent)]"
                 >
                   Start learning
                 </Link>

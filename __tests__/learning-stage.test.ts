@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { deriveLearningStage } from "@/lib/client/learningStage";
+import { deriveLearningStage, deriveJourneyStep } from "@/lib/client/learningStage";
 
 const base = {
   phase: "idle" as const,
@@ -86,5 +86,31 @@ describe("deriveLearningStage", () => {
     expect(
       deriveLearningStage({ ...base, phase: "tutor_failed", recorderStatus: "recording" }),
     ).toBe("error");
+  });
+});
+
+describe("deriveJourneyStep", () => {
+  it("maps curious/listening/understanding to 'understand'", () => {
+    expect(deriveJourneyStep("curious", false)).toBe("understand");
+    expect(deriveJourneyStep("listening", false)).toBe("understand");
+    expect(deriveJourneyStep("understanding", false)).toBe("understand");
+  });
+
+  it("maps teaching/retry to 'try'", () => {
+    expect(deriveJourneyStep("teaching", true)).toBe("try");
+    expect(deriveJourneyStep("retry", true)).toBe("try");
+  });
+
+  it("maps assessing to 'check'", () => {
+    expect(deriveJourneyStep("assessing", true)).toBe("check");
+  });
+
+  it("maps success to 'master'", () => {
+    expect(deriveJourneyStep("success", true)).toBe("master");
+  });
+
+  it("keeps 'error' from advancing or regressing the journey, based on whether a topic was active", () => {
+    expect(deriveJourneyStep("error", false)).toBe("understand");
+    expect(deriveJourneyStep("error", true)).toBe("try");
   });
 });
