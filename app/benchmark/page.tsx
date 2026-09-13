@@ -18,8 +18,6 @@ export default async function BenchmarkPage() {
   const evaluationDate = new Date().toISOString().slice(0, 10);
 
   const saharaSummary = asr.summaries.find((s) => s.provider === "sahara");
-  const whisperSummary = asr.summaries.find((s) => s.provider === "whisper-large-v3");
-  const geminiSummary = asr.summaries.find((s) => s.provider === "gemini");
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12 sm:py-20 flex flex-col gap-14">

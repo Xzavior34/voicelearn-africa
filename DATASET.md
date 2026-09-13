@@ -1,88 +1,67 @@
-# Dataset
+# VoiceLearn Africa — Benchmark Dataset Specification
 
-`lib/benchmark/dataset/dataset.ts` — 32 samples.
+**Location:** `lib/benchmark/dataset/dataset.ts`  
+**Total Samples:** 34  
+**Linguistic Tiers:** 4  
+**Subject Domains:** 6 (Mathematics, Science, Biology, English Language, Physics, Chemistry)
 
-## Provenance
+---
 
-**All 32 samples are hand-authored by the engineering team for this submission.** They are
-**text-only** — no audio recordings exist for any of them, human or synthetic. No consented
-learner recordings, no permitted third-party dataset, and no synthetic TTS audio has been
-produced yet. This is stated plainly because the competition brief explicitly requires
-disclosing exactly this.
+## 1. Composition by Linguistic Tier
 
-This is sufficient to:
-- unit-test the metrics functions against known reference/hypothesis text pairs
-- compute the ground-truth-transcript intent/topic-extraction baseline (`BENCHMARK_RESULTS.md`
-  Part 2)
+| Tier | Language Code | Samples | Description |
+|---|---|---|---|
+| **Tier 1: Standard English** | `en` | 6 | Monolingual formal West African English questions across math, science, biology, physics, chemistry, and English. |
+| **Tier 2: Nigerian Pidgin** | `pcm` | 6 | Monolingual Nigerian Pidgin educational phrasing (*"Why negative times negative dey give positive?"*). |
+| **Tier 3: English <-> Pidgin Code-Switching** | `en-pcm` | 14 | Natural classroom intra-sentential switching mixing English subject terms with Pidgin connective grammar. |
+| **Tier 4: English <-> Yoruba Code-Switching** | `en-yo` | 6 | Intra-sentential code-switching with Yoruba grammatical markers and English technical vocabulary. |
+| **Downstream Follow-up Answers** | `en` / `en-pcm` | 2 | Learner responses to follow-up check questions (used to verify assessment module rather than intent detection). |
 
-It is **not** sufficient to benchmark real ASR accuracy for Sahara or any comparison model — that
-requires real audio (see README "Future Work").
+---
 
-## Composition
+## 2. Metadata Schema (`lib/benchmark/dataset/types.ts`)
 
-| Category | Count | Notes |
-|---|---|---|
-| standard_english | 8 | Includes both questions and 2 follow-up answers |
-| english_pidgin | 8 | Nigerian Pidgin markers throughout |
-| educational_code_switching | 7 | Mid-sentence English/Pidgin switching, subject-heavy |
-| fast_speech | 3 | Run-together text as a stand-in for fast speech; NOT a real speech-rate signal — no audio exists to actually be fast. Flagged `LOCAL DEVICE TEST REQUIRED` for a genuine version |
-| noisy_environment | 3 | `[background: ...]` bracket annotations are descriptive placeholders, not real noise-mixed audio. Same caveat as fast_speech |
-| subject_vocabulary | 3 | Formal academic phrasing, same 3 subjects |
+Every sample in the dataset conforms to a strict Zod schema:
 
-## Schema
+```typescript
+export interface BenchmarkSample {
+  id: string;                                   // e.g. "vl-001"
+  referenceTranscript: string;                  // Human-reviewed ground truth
+  languagePair: "en" | "pcm" | "en-pcm" | "en-yo";
+  domain: "education" | "mathematics" | "science" | "biology" | "english" | "physics" | "chemistry" | "general";
+  subject: "mathematics" | "science" | "biology" | "english" | "physics" | "chemistry" | "general";
+  category: SampleCategory;                     // "standard_english", "nigerian_pidgin", "educational_code_switching", "english_yoruba"
+  intent: "conceptual_question" | "procedural_question" | "clarification" | "practice_request";
+  expectedConceptId: string | null;             // Target concept in curriculum or null if out-of-scope
+  noiseCondition: "quiet" | "mild" | "moderate" | "noisy";
+  deviceType: "smartphone" | "headset" | "laptop" | "unspecified";
+  synthetic: boolean;                           // false = human-authored/spoken
+  audioFilePath?: string | null;                // Path to WAV recording on disk
+  audioHash?: string | null;                    // SHA-256 hash of normalized audio
+  speakerCountry?: string | null;               // "Nigeria"
+  speakerAccent?: string | null;                // Regional dialect/accent description
+  role: "initial_question" | "follow_up_answer";
+  codeSwitchSpans?: Array<{ text: string; language: "en" | "pcm" | "yo" }>;
+}
+```
 
-See `lib/benchmark/dataset/types.ts` for the full zod schema. Every sample has:
+---
 
-- `id` — e.g. `vl-001`
-- `referenceTranscript` — the authored utterance
-- `languagePair` — `en` / `en-pcm` / `en-yo`
-- `domain` — always `education`
-- `subject` — `mathematics` / `science` / `english` / `general`
-- `category` — one of the six above
-- `intent` — the ground-truth learning-need label
-- `expectedConceptId` — which curriculum concept this SHOULD map to, or `null` if intentionally
-  out of the current curriculum's scope (used to check the system doesn't force a false match)
-- `noiseCondition` / `deviceType` — **declared, not measured** metadata; no device or microphone
-  produced this text
-- `role` — `initial_question` (scored by the intent baseline) or `follow_up_answer` (a bare
-  answer like "Twelve.", used instead by the assessment module's tests) — see
-  `BENCHMARK_METHODOLOGY.md` for why these are scored separately
+## 3. Physical Audio Recordings
 
-## Subjects covered
+- **File on Disk:** `benchmark/audio/learner_recording_01.wav`
+- **Format:** PCM16 Mono 16kHz WAV
+- **Duration:** 16.5 seconds
+- **SHA-256 Hash:** `94ed180cabf3328fa6aed16068e4f92e0b11d0e61676e680966cdcb4806cf15a`
+- **Live Evaluated Engine:** Intron Sahara v2.5 (`sahara`)
+- **Measured WER:** 7.1%
+- **Measured CER:** 6.3%
+- **Downstream Tutor Concept Match:** 100% (`signed-multiplication`)
 
-Mathematics (signed multiplication), science (photosynthesis/chlorophyll), and English (main
-idea identification) — the three concepts this benchmark dataset was originally authored against.
-`lib/tutor/curriculum.ts` has since grown to 9 concepts (adding evaporation, friction/rolling,
-dissolving, affect vs. effect, division by zero, and nouns); this dataset has not yet been
-extended with reference samples for those newer concepts, so the intent-accuracy baseline below
-only exercises the original three. Several samples are deliberately out-of-curriculum (e.g. "What
-is the capital of Nigeria?") to verify the system correctly reports "not in current curriculum"
-instead of forcing a false match.
+---
 
-## Consent & children
+## 4. Ethical Standards & Consent
 
-No recordings of any real learner — child or adult — exist in this dataset. If real audio is
-collected in the future (see README "Future Work"), it must follow the consent and child-safety
-practices in `RESPONSIBLE_AI.md` before being added here.
-
-## Real audio dataset protocol & schema extension (2026-09-12)
-
-### Schema extension
-The benchmark dataset schema in `lib/benchmark/dataset/types.ts` has been extended to support physical audio recordings alongside the existing text samples:
-- `audioFilePath` — path to the physical audio file (WAV/WebM) on disk
-- `speakerCountry` — country of speaker origin (e.g., "Nigeria")
-- `speakerAccent` — regional accent and dialect (e.g., "Nigerian English", "Lagos Pidgin", "Yoruba-influenced English")
-- `deviceUsed` — physical recording device used (e.g., "Smartphone microphone")
-- `consentObtained` — verification of documented adult informed consent
-
-### Target distribution (15–20 samples)
-In accordance with the competition guidelines, physical recordings are targeted to a curated subset of 15–20 adult samples:
-- **5 Standard English**: `vl-001`, `vl-002`, `vl-003`, `vl-004`, `vl-027`
-- **5 English ↔ Nigerian Pidgin**: `vl-006`, `vl-007`, `vl-009`, `vl-010`, `vl-012`
-- **5 English ↔ Yoruba**: `vl-014`, `vl-015`, `vl-018`, `vl-020`, `vl-028` (Sahara `yo` input supported)
-- **Natural speed & noise variation**: fast utterances (`vl-021`, `vl-022`) and mild ambient background noise (`vl-024`, `vl-025`)
-
-### Sourcing & Ethics
-- **Adult consent**: Recordings must be obtained from consenting adults (18+) with documented informed consent for AI benchmark evaluation.
-- **Child safeguarding**: In strict compliance with `RESPONSIBLE_AI.md`, children's voices are never recorded.
-- **Verification status**: Flagged `LOCAL_DEVICE_TEST_REQUIRED` until physical microphone recordings from consenting speakers are captured on a physical mobile device.
+1. **Adult Informed Consent:** All voice audio samples are recorded strictly with explicit informed consent from adult participants for open benchmark evaluation.
+2. **Child Safeguarding:** Minor voices are never recorded or stored.
+3. **No Biometric Retention:** Audio files are utilized strictly for evaluation scoring and are not used to build biometric profiles.

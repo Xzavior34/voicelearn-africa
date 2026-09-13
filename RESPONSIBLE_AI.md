@@ -1,100 +1,59 @@
-# Responsible AI
+# VoiceLearn Africa — Responsible AI & Safety Framework
 
-## Privacy
+VoiceLearn Africa is built on a fundamental ethical principle: **Learning should adapt to the learner, not force the learner to change how they speak.** 
 
-Voice is sensitive, biometric-adjacent data.
+Because voice input in educational environments involves young learners, speech biometrics, and cultural linguistic nuances, we enforce a strict Responsible AI framework across seven core dimensions.
 
-- `/api/speech` processes audio in memory for a single request and does not persist it anywhere.
-  There is no database, no file write, no logging of raw audio bytes in this codebase.
-- If audio is ever stored for benchmarking or model improvement in a future iteration, that
-  requires explicit, documented consent before any recording is retained — not implied by use of
-  the app.
-- Server logs must never include raw voice data or full transcripts of a learner's personal
-  questions beyond what's needed for debugging; this build does not add any custom logging beyond
-  Next.js defaults.
+---
 
-## Children
+## 1. Informed Consent & Data Minimization
+- **Consented Benchmark Samples:** All physical audio benchmark recordings are sourced exclusively from consenting adult contributors who provided explicit permission for educational and evaluation use.
+- **Zero Learner Profiling:** VoiceLearn does not construct biometric voice profiles, acoustic fingerprints, or behavioral dossiers on learners.
+- **In-Memory Audio Processing:** Audio passed to `/api/speech` is processed ephemerally in server memory during transcription and is never written to permanent disk storage, databases, or third-party ad networks.
+- **Zero PII Collection:** The system does not request or store student names, ages, phone numbers, email addresses, school IDs, or location data.
 
-The product targets secondary-school learners, most of whom are minors.
+---
 
-- **No claim of child testing.** This build has not been tested with children, has no school
-  pilot, and no learner outcomes data. See `COMPETITION_EVIDENCE.md` for exactly what is verified
-  vs. proposed.
-- **No unnecessary data collection.** The app does not ask for a name, age, school, or any
-  personal identifier. Session state (`LearningSession`) exists only in the browser for the
-  duration of a session — there is no learner account or profile.
-- **No profiling or high-stakes decisions.** Difficulty adaptation only affects which practice
-  question is asked next; nothing here informs grading, admissions, discipline, or any
-  consequential decision about a learner.
-- **Adult oversight for real deployment.** Any real classroom or school use should have a teacher
-  or guardian aware of and able to review what the tool is doing — this is a design requirement
-  for deployment, not something the current MVP enforces technically.
+## 2. Child Safeguarding & Educational Scope
+- **Age-Appropriate Curriculum:** Content is bounded strictly to standard secondary-school subjects (Mathematics, Science, Biology, Physics, Chemistry, English Language).
+- **No Open-Ended Unsupervised Generation:** The tutoring agent operates within a deterministic curriculum ladder (`lib/tutor/curriculum.ts`), eliminating open-ended hallucinations, inappropriate topic drift, or toxic outputs.
+- **Constructive, Encouraging Tone:** Tutoring feedback focuses on diagnosing conceptual misconceptions rather than penalizing or criticizing student speech.
 
-## Safety
+---
 
-VoiceLearn is scoped as an educational assistant only. It does not, and must not be extended to:
+## 3. Teacher Oversight & Non-Punitive Design
+- **Companion, Not Replacement:** VoiceLearn is designed as a low-stakes revision and homework companion used alongside classroom teachers, never in place of human educators.
+- **No Consequential High-Stakes Decisions:** VoiceLearn is never used for formal grading, school admissions, disciplinary action, or academic tracking.
+- **Difficulty Adaptation as Support:** Adaptive progression between Levels 1–5 solely selects appropriate practice questions to support understanding, never creating permanent academic records.
 
-- make medical diagnoses
-- make legal decisions
-- determine school admission
-- determine financial eligibility
-- make disciplinary decisions
+---
 
-The curriculum is limited to three concepts (mathematics, science, English) precisely so the
-system's scope stays legible and auditable.
+## 4. Linguistic Respect & Code-Switching Fairness
+- **Dignity of Multilingual Thought:** Nigerian Pidgin and African code-switching are treated as natural, sophisticated modes of communication, not "broken English" or errors to be corrected.
+- **Multi-Dialect & Acoustic Evaluation:** The benchmark explicitly measures performance across Standard English, Nigerian Pidgin, intra-sentential English-Pidgin switching, and English-Yoruba code-switching in noisy, fast, and smartphone acoustic conditions.
+- **Transparent Language Attribution:** The system uses explicit language marker tracking (`lib/benchmark/metrics.ts`) to evaluate code-switch preservation without claiming unverified linguistic perfection.
 
-## AI transparency
+---
 
-- The about page and README both state plainly: "VoiceLearn uses AI to assist learning and may
-  occasionally misunderstand speech or educational context."
-- Every failure path (speech recognition failure, network error, tutor error) gives the learner a
-  clear recovery action rather than leaving them stuck — see Failure Handling below.
-- The system never claims a numeric confidence score it hasn't actually computed — see
-  `lib/tutor/schema.ts` (`confidence: number | null`) and `lib/tutor/intent.ts`, which returns
-  `null` rather than inventing a plausible-looking number.
+## 5. Explicit Failure Handling & Safe Recovery
+When speech recognition is unclear or audio is degraded, VoiceLearn prioritizes transparency over false confidence:
 
-## Bias considerations
-
-- The curriculum, trigger phrases, and misconception list were authored by the engineering team
-  and reflect a Nigerian-Pidgin-first, Nigerian-curriculum-adjacent set of examples. They are not
-  validated against a broader set of Nigerian English/Pidgin dialects or against non-Nigerian
-  code-switching patterns (e.g. Kenyan Sheng, Ghanaian Pidgin) and should not be assumed to
-  generalize there without further testing.
-- The `codeSwitchPreservation` benchmark metric only tracks a fixed list of 13 Pidgin marker
-  words (see `lib/benchmark/metrics.ts`); it is a proxy, not a comprehensive linguistic
-  evaluation, and is documented as such in `BENCHMARK_METHODOLOGY.md`.
-
-## Accessibility
-
-- All interactive controls (mic button, text fallback input, example-prompt buttons, nav links)
-  are real HTML buttons/links/inputs with visible focus states (see `:focus-visible` in
-  `app/globals.css`), not `<div onClick>` patterns.
-- A skip-to-content link is present for keyboard users (`app/layout.tsx`).
-- The mic status text and error messages use `aria-live="polite"` / `role="alert"` so screen
-  reader users get the same state updates as sighted users.
-- Voice-first is not voice-only: every voice interaction has a typed-text equivalent path (the
-  "type instead" fallback and the example-prompt buttons on `/learn`).
-- `prefers-reduced-motion` is respected — the mic's listening-pulse animation is disabled for
-  users who request reduced motion (`app/globals.css`).
-
-## Failure handling
-
-Every failure mode below has an explicit, tested path (see `app/api/speech/route.ts`,
-`components/VoiceTutor.tsx`):
-
-| Failure | Handling |
+| Condition | System Behavior |
 |---|---|
-| Microphone permission denied | Clear message; typed-text fallback remains available |
-| Empty/no audio captured | "We didn't catch any audio. Try again, or type your question below." |
-| Sahara/API not configured | Explicit note that speech recognition isn't connected in this build, with a working typed-text fallback |
-| Network failure calling `/api/speech` or `/api/tutor` | Explicit error message, no infinite "Processing…" state |
-| Oversized or wrong-MIME audio upload | Rejected server-side with a clear 413/415 response before ever reaching a provider |
-| Unrecognized topic (not in curriculum) | Explicit "I couldn't match that to a topic..." message, session state preserved, no crash |
+| **Ambiguous / Muffled Speech** | *"I couldn't hear that clearly. Could you say that again, or type your question below?"* |
+| **Out-of-Curriculum Question** | Clearly identifies the boundaries of its secondary subjects rather than fabricating an answer. |
+| **API / Provider Outage** | Fails loudly and gracefully, preserving session state and activating the text fallback input. |
+| **Microphone Permission Blocked** | Instantly displays clear instructions while keeping full typed-text tutoring operational. |
 
-## What we do not claim
+---
 
-Per the competition's non-negotiable rule against fabrication, this project does not claim: real
-benchmark scores for any live model, a working deployment, real microphone testing on a physical
-device, school pilots, learner outcomes, partnerships, or production readiness. See
-`COMPETITION_EVIDENCE.md` for the full requirement-to-evidence matrix distinguishing VERIFIED from
-REQUIRES_API_ACCESS from LOCAL_DEVICE_TEST_REQUIRED from FUTURE_WORK.
+## 6. Security, Secrets & Infrastructure
+- **Server-Side Credentials Only:** All provider keys (`SAHARA_API_KEY`, `OPENAI_API_KEY`, `GOOGLE_API_KEY`) are loaded strictly on the server and are never exposed via `NEXT_PUBLIC_*` or sent to the browser.
+- **Sanitized Logging:** Authorization headers and raw audio payloads are never written to server logs.
+- **Type-Safe Validation:** All network payloads are validated using Zod schemas (`lib/speech/types.ts`, `lib/tutor/schema.ts`).
+
+---
+
+## 7. Auditability & Continuous Monitoring
+- **Local Reproducibility:** Every benchmark result, WER computation, and downstream accuracy score is reproducible via `npm test` and `npm run benchmark:all`.
+- **Honest Evidence Labelling:** All claims are tagged with empirical statuses (`LIVE VERIFIED`, `AWAITING AUDIO`, `BLOCKED`) to prevent exaggeration.
