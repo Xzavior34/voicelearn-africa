@@ -48,6 +48,7 @@ export function createGenericRestProvider(
     id: name.toLowerCase().replace(/\s+/g, "-"),
     name,
     model: name,
+    runtime: "remote-api",
     isLive: Boolean(process.env[urlEnvVar] && process.env[keyEnvVar]),
     supportedLanguagePairs,
 
@@ -57,6 +58,7 @@ export function createGenericRestProvider(
           provider: name.toLowerCase().replace(/\s+/g, "-"),
           providerName: `${name} (dev override — NOT a live response)`,
           model: `${name} (dev-override)`,
+          runtime: "remote-api",
           transcript: input.devTranscriptOverride,
           confidence: null,
           languagePair: input.languagePair,
@@ -106,6 +108,7 @@ export function createGenericRestProvider(
           provider: name.toLowerCase().replace(/\s+/g, "-"),
           providerName: name,
           model: name,
+          runtime: "remote-api",
           transcript: json.transcript,
           confidence: typeof json.confidence === "number" ? json.confidence : null,
           languagePair: input.languagePair,

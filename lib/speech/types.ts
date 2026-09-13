@@ -10,6 +10,7 @@
 
 export type LanguagePair =
   | "en" // Standard English only
+  | "pcm" // Monolingual Nigerian Pidgin
   | "en-pcm" // English <-> Nigerian Pidgin (Tier 1)
   | "en-yo"; // English <-> Yoruba (Tier 2, only if provider genuinely supports it)
 
@@ -28,6 +29,8 @@ export interface AudioInput {
   durationSeconds?: number;
   /** Declared language pair the learner is expected to be speaking. */
   languagePair: LanguagePair;
+  /** Optional file path to normalized WAV on disk. */
+  audioPath?: string;
   /**
    * Development/benchmark-only escape hatch: lets the harness and unit
    * tests exercise the pipeline downstream of ASR without needing a live
@@ -39,12 +42,14 @@ export interface AudioInput {
 }
 
 export interface SpeechResult {
-  /** Provider identifier, e.g. "sahara", "whisper-large-v3", "gemini". */
+  /** Provider identifier, e.g. "sahara", "whisper-large-v3", "wav2vec2-large-960h". */
   provider: string;
   /** Backwards-compatible alias for provider identifier. */
   providerName: string;
-  /** Actual configured model identifier, e.g. "sahara-v2.5", "whisper-1", "gemini-1.5-flash". */
+  /** Actual configured model identifier, e.g. "sahara-v2.5", "openai/whisper-large-v3", "facebook/wav2vec2-large-960h". */
   model: string;
+  /** Execution environment for the model. */
+  runtime: "remote-api" | "local";
   /** The provider's transcription of what was spoken. */
   transcript: string;
   /** 0-1 confidence score, ONLY if the provider genuinely reports one. */
@@ -59,9 +64,14 @@ export interface SpeechResult {
   error?: string;
   /** Audio and encoding metadata. */
   metadata?: {
+    audioSha256?: string;
     audioDurationMs?: number;
     sampleRate?: number;
     channels?: number;
+    device?: string;
+    deviceName?: string;
+    coldStartMs?: number;
+    warmInferenceLatencyMs?: number;
     mode?: string;
   };
   /** Raw, provider-specific response object for debugging. */
@@ -91,6 +101,9 @@ export class SpeechProviderError extends Error {
       | "CHUNK_SIZE_ERROR"
       | "INSUFFICIENT_AUDIO_ACTIVITY"
       | "SESSION_TIME_LIMIT_EXCEEDED"
+      | "MODEL_DOWNLOAD_REQUIRED"
+      | "INSUFFICIENT_LOCAL_RESOURCES"
+      | "LOCAL_WORKER_ERROR"
       | "UNKNOWN",
     message: string,
   ) {
@@ -105,6 +118,10 @@ export type ProviderHealthState =
   | "auth_failed"
   | "quota_exceeded"
   | "unreachable"
+  | "ready"
+  | "model_ready"
+  | "model_download_required"
+  | "insufficient_resources"
   | "unknown_error";
 
 export interface ProviderHealthResult {
@@ -113,24 +130,26 @@ export interface ProviderHealthResult {
   checkedAt: string; // ISO timestamp
   latencyMs: number | null;
   model?: string;
+  runtime?: "remote-api" | "local";
+  device?: string;
 }
 
 export interface SpeechProvider {
-  /** Unique provider identifier, e.g. "sahara", "whisper-large-v3", "gemini". */
+  /** Unique provider identifier, e.g. "sahara", "whisper-large-v3", "wav2vec2-large-960h". */
   readonly id: string;
   /** Human-readable name, e.g. "Intron Sahara v2.5". */
   readonly name: string;
   /** The specific model name used, e.g. "sahara-v2.5". */
   readonly model: string;
-  /** Whether this provider is genuinely callable right now (has live credentials). */
+  /** Runtime execution model. */
+  readonly runtime: "remote-api" | "local";
+  /** Whether this provider is genuinely callable right now (has live credentials or local model loaded). */
   readonly isLive: boolean;
   /** Which language pairs this provider claims support for. */
   readonly supportedLanguagePairs: LanguagePair[];
   transcribe(input: AudioInput): Promise<SpeechResult>;
   /**
-   * Optional real connectivity/auth check, distinct from `isLive`
-   * (which only reflects whether credentials are *configured*, not
-   * whether they actually work).
+   * Optional real connectivity/auth check, distinct from `isLive`.
    */
   checkHealth?(): Promise<ProviderHealthResult>;
 }

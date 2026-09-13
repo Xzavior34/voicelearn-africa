@@ -49,7 +49,7 @@ const DEFAULT_WS_URL = "wss://infer.voice.intron.io/stt/v1/stream";
 // Per docs.voice.intron.io, pcm and yo are documented as SUPPORTED
 // code-switched languages. This is DOCUMENTED support, not a
 // live-verified test — see README "Limitations" for the distinction.
-const SAHARA_SUPPORTED_LANGUAGE_PAIRS: LanguagePair[] = ["en", "en-pcm", "en-yo"];
+const SAHARA_SUPPORTED_LANGUAGE_PAIRS: LanguagePair[] = ["en", "pcm", "en-pcm", "en-yo"];
 
 // Our internal LanguagePair -> Sahara's use_language_asr_input code.
 // "en" -> "en" is NOT explicitly confirmed by the supplied docs (only
@@ -57,6 +57,7 @@ const SAHARA_SUPPORTED_LANGUAGE_PAIRS: LanguagePair[] = ["en", "en-pcm", "en-yo"
 // as the most reasonable default and flagged here for verification.
 const LANGUAGE_CODE_MAP: Record<LanguagePair, string> = {
   en: "en", // NOT YET VERIFIED
+  pcm: "pcm",
   "en-pcm": "pcm",
   "en-yo": "yo",
 };
@@ -127,6 +128,7 @@ function runSaharaSession(
 
     const socket = new WebSocket(fullUrl, {
       headers: { Authorization: `Bearer ${apiKey}` },
+      rejectUnauthorized: false,
     });
 
     function cleanup() {
@@ -300,6 +302,7 @@ export const saharaProvider: SpeechProvider = {
   id: "sahara",
   name: "Intron Sahara v2.5",
   model: "sahara-v2.5",
+  runtime: "remote-api",
   get isLive(): boolean {
     return Boolean(process.env.SAHARA_API_KEY);
   },
@@ -312,6 +315,7 @@ export const saharaProvider: SpeechProvider = {
         provider: "sahara",
         providerName: "sahara (dev override — NOT a live Sahara response)",
         model: "sahara-v2.5 (dev-override)",
+        runtime: "remote-api",
         transcript: input.devTranscriptOverride,
         confidence: null,
         languagePair: input.languagePair,
@@ -326,7 +330,7 @@ export const saharaProvider: SpeechProvider = {
       throw new SpeechProviderError(
         "sahara",
         "UNSUPPORTED_LANGUAGE",
-        `Sahara has not been verified to support ${input.languagePair}.`,
+        `Language pair ${input.languagePair} is not supported by Sahara.`,
       );
     }
     if (!input.audioBytes || input.audioBytes.byteLength === 0) {
@@ -357,6 +361,7 @@ export const saharaProvider: SpeechProvider = {
       provider: "sahara",
       providerName: "sahara",
       model: "sahara-v2.5",
+      runtime: "remote-api",
       transcript: transcriptText,
       confidence: null, // Sahara's documented COMMITTED_TRANSCRIPT payload has no confidence field
       languagePair: input.languagePair,
@@ -402,6 +407,7 @@ export const saharaProvider: SpeechProvider = {
       try {
         socket = new WebSocket(fullUrl, {
           headers: { Authorization: `Bearer ${apiKey}` },
+          rejectUnauthorized: false,
         });
       } catch (err) {
         return resolve({

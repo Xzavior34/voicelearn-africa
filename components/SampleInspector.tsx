@@ -10,14 +10,14 @@ interface Props {
 }
 
 export default function SampleInspector({ samples, results = [] }: Props) {
-  const [selectedId, setSelectedId] = useState<string>(samples[0]?.id || "vl-001");
+  const [selectedId, setSelectedId] = useState<string>(samples[0]?.id || "sample-001");
 
   const sample = samples.find((s) => s.id === selectedId) || samples[0];
   const sampleResults = results.filter((r) => r.sampleId === sample?.id);
 
   const saharaResult = sampleResults.find((r) => r.provider === "sahara");
   const whisperResult = sampleResults.find((r) => r.provider === "whisper-large-v3" || r.provider === "model-b");
-  const geminiResult = sampleResults.find((r) => r.provider === "gemini" || r.provider === "model-c");
+  const wav2vecResult = sampleResults.find((r) => r.provider === "wav2vec2-large-960h" || r.provider === "model-c");
 
   if (!sample) return null;
 
@@ -104,7 +104,7 @@ export default function SampleInspector({ samples, results = [] }: Props) {
             <div className="flex items-center justify-between">
               <span className="font-semibold text-ink text-xs">Intron Sahara v2.5</span>
               <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-leaf-light text-leaf font-medium">
-                {saharaResult?.status === "measured" ? "LIVE VERIFIED" : "AUTHENTICATED"}
+                {saharaResult?.status === "measured" ? "LIVE VERIFIED" : "REMOTE API"}
               </span>
             </div>
             <div className="mt-3 text-xs space-y-2">
@@ -123,13 +123,13 @@ export default function SampleInspector({ samples, results = [] }: Props) {
           </div>
         </div>
 
-        {/* Model B: Whisper */}
+        {/* Model B: Whisper Large v3 */}
         <div className="flex flex-col justify-between rounded-xl border border-line bg-paper p-4">
           <div>
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-ink text-xs">OpenAI Whisper Large v3</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-paper-subtle text-ink-muted">
-                {whisperResult?.status === "measured" ? "MEASURED" : "REQUIRES API KEY"}
+              <span className="font-semibold text-ink text-xs">Whisper Large v3</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-paper-subtle text-ink-muted font-medium">
+                LOCAL OPEN-WEIGHT
               </span>
             </div>
             <div className="mt-3 text-xs space-y-2">
@@ -137,55 +137,83 @@ export default function SampleInspector({ samples, results = [] }: Props) {
                 {whisperResult?.hypothesisTranscript ? (
                   <span className="text-ink font-serif">&ldquo;{whisperResult.hypothesisTranscript}&rdquo;</span>
                 ) : (
-                  "Set OPENAI_API_KEY in .env.local to run live comparison"
+                  "Local inference runner (Apache-2.0, zero paid API)"
                 )}
               </p>
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-[11px] font-mono text-ink-muted">
             <span>WER: {whisperResult?.wer !== null && whisperResult?.wer !== undefined ? `${(whisperResult.wer * 100).toFixed(1)}%` : "—"}</span>
-            <span>Status: {whisperResult?.status ?? "Unconfigured"}</span>
+            <span>Latency: {whisperResult?.latencyMs ? `${whisperResult.latencyMs}ms` : "—"}</span>
           </div>
         </div>
 
-        {/* Model C: Gemini */}
+        {/* Model C: Wav2Vec2 Large 960h */}
         <div className="flex flex-col justify-between rounded-xl border border-line bg-paper p-4">
           <div>
             <div className="flex items-center justify-between">
-              <span className="font-semibold text-ink text-xs">Google Gemini Audio</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-paper-subtle text-ink-muted">
-                {geminiResult?.status === "measured" ? "MEASURED" : "CONFIGURABLE"}
+              <span className="font-semibold text-ink text-xs">Wav2Vec2 Large 960h</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-paper-subtle text-ink-muted font-medium">
+                LOCAL BASELINE
               </span>
             </div>
             <div className="mt-3 text-xs space-y-2">
               <p className="text-ink-muted italic">
-                {geminiResult?.hypothesisTranscript ? (
-                  <span className="text-ink font-serif">&ldquo;{geminiResult.hypothesisTranscript}&rdquo;</span>
+                {wav2vecResult?.hypothesisTranscript ? (
+                  <span className="text-ink font-serif uppercase">&ldquo;{wav2vecResult.hypothesisTranscript}&rdquo;</span>
                 ) : (
-                  "Set GOOGLE_API_KEY in .env.local to run live comparison"
+                  "English LibriSpeech baseline (Apache-2.0, zero paid API)"
                 )}
               </p>
             </div>
           </div>
           <div className="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-[11px] font-mono text-ink-muted">
-            <span>WER: {geminiResult?.wer !== null && geminiResult?.wer !== undefined ? `${(geminiResult.wer * 100).toFixed(1)}%` : "—"}</span>
-            <span>Status: {geminiResult?.status ?? "Unconfigured"}</span>
+            <span>WER: {wav2vecResult?.wer !== null && wav2vecResult?.wer !== undefined ? `${(wav2vecResult.wer * 100).toFixed(1)}%` : "—"}</span>
+            <span>Latency: {wav2vecResult?.latencyMs ? `${wav2vecResult.latencyMs}ms` : "—"}</span>
           </div>
         </div>
       </div>
 
-      {/* Downstream Agentic Impact */}
-      <div className="rounded-xl border border-line bg-paper-elevated p-4 text-xs">
-        <p className="text-[11px] uppercase tracking-wider text-ink font-semibold mb-2">
-          Downstream Agentic Tutoring Outcome
-        </p>
-        <p className="text-ink-soft leading-relaxed">
-          When this utterance is spoken, the VoiceLearn tutoring agent identifies the core learning need
-          (<span className="font-mono text-indigo font-medium">{sample.intent}</span>) and maps it to
-          concept <span className="font-mono text-indigo font-medium">{sample.expectedConceptId ?? "out-of-curriculum"}</span>,
-          triggering calibrated secondary-school explanations, diagnostic follow-up questions, and adaptive difficulty.
-        </p>
-      </div>
+      {/* Downstream Agentic Task Assessment */}
+      {saharaResult?.downstream && (
+        <div className="rounded-xl border border-indigo-border bg-indigo-light/30 p-4 text-xs">
+          <div className="flex items-center justify-between mb-2">
+            <span className="font-mono text-[11px] font-semibold text-indigo uppercase">
+              Downstream Agentic Pipeline Trace
+            </span>
+            <span
+              className={`px-2 py-0.5 rounded font-mono text-[10px] font-medium ${
+                saharaResult.downstream.tutorSuccess
+                  ? "bg-leaf-light text-leaf"
+                  : "bg-terracotta-light text-terracotta"
+              }`}
+            >
+              {saharaResult.downstream.tutorSuccess ? "TUTOR SUCCESS" : "ALIGNMENT FAILED"}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-3">
+            <div className="bg-paper p-3 rounded-lg border border-line/60">
+              <p className="text-ink-muted font-mono text-[10px]">1. Intent Alignment</p>
+              <p className="font-medium text-ink mt-0.5 capitalize">
+                {saharaResult.downstream.intentMatched ? "✅ Matched Intent" : "❌ Unmatched"}
+              </p>
+            </div>
+            <div className="bg-paper p-3 rounded-lg border border-line/60">
+              <p className="text-ink-muted font-mono text-[10px]">2. Extracted Concept</p>
+              <p className="font-medium text-indigo font-mono mt-0.5 truncate">
+                {saharaResult.downstream.predictedConceptId ?? "None"}
+              </p>
+            </div>
+            <div className="bg-paper p-3 rounded-lg border border-line/60">
+              <p className="text-ink-muted font-mono text-[10px]">3. Target Alignment</p>
+              <p className="font-medium text-ink mt-0.5">
+                {saharaResult.downstream.conceptMatched ? "✅ Exact Concept" : saharaResult.downstream.topicMatched ? `✅ Scope (${saharaResult.downstream.predictedTopic})` : "❌ Mismatched"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

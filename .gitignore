@@ -40,3 +40,16 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local python & model caches
+__pycache__/
+*.py[cod]
+.venv/
+env/
+.tmp/
+.huggingface/
+models/
+*.safetensors
+*.pt
+*.bin
+

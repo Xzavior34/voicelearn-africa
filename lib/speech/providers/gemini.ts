@@ -47,6 +47,7 @@ function assertConfigured(): { apiKey: string; model: string } {
 export const geminiProvider: SpeechProvider = {
   id: "gemini",
   name: "Google Gemini Audio",
+  runtime: "remote-api",
   get model(): string {
     return getGeminiConfig().model;
   },
@@ -63,6 +64,7 @@ export const geminiProvider: SpeechProvider = {
         provider: "gemini",
         providerName: "gemini (dev override — NOT a live response)",
         model: `${configuredModel} (dev-override)`,
+        runtime: "remote-api",
         transcript: input.devTranscriptOverride,
         confidence: null,
         languagePair: input.languagePair,
@@ -161,6 +163,7 @@ export const geminiProvider: SpeechProvider = {
         provider: "gemini",
         providerName: "gemini",
         model,
+        runtime: "remote-api",
         transcript: cleanTranscript,
         confidence: null,
         languagePair: input.languagePair,

@@ -1,12 +1,16 @@
 /**
- * OpenAI Whisper Large v3 speech provider — LOCAL OPEN-WEIGHT INFERENCE.
+ * Meta Wav2Vec2 Large 960h speech provider — LOCAL OPEN-WEIGHT INFERENCE.
  *
- * Source: openai/whisper-large-v3 (Hugging Face / Transformers)
+ * Source: facebook/wav2vec2-large-960h (Hugging Face / Transformers)
  * License: Apache-2.0
  *
- * ZERO PAID OPENAI API DEPENDENCIES.
- * Runs locally via Python Transformers inference worker (`scripts/asr/whisper_worker.py`).
- * Weights are loaded from the local Hugging Face cache.
+ * ZERO PAID API DEPENDENCIES.
+ * Runs locally via Python Transformers inference worker (`scripts/asr/wav2vec2_worker.py`).
+ *
+ * RESEARCH BASELINE NOTE:
+ * facebook/wav2vec2-large-960h is an English LibriSpeech model (~1.26 GB),
+ * serving as an independent general English open-source ASR baseline to evaluate
+ * how non-African specialized speech models degrade under African code-switching.
  */
 
 import { spawn } from "child_process";
@@ -22,8 +26,8 @@ import {
   ProviderHealthResult,
 } from "../types";
 
-const WHISPER_SUPPORTED_LANGUAGE_PAIRS: LanguagePair[] = ["en", "pcm", "en-pcm", "en-yo"];
-const DEFAULT_MODEL_ID = process.env.WHISPER_MODEL_ID || "openai/whisper-large-v3";
+const WAV2VEC2_SUPPORTED_LANGUAGE_PAIRS: LanguagePair[] = ["en", "pcm", "en-pcm", "en-yo"];
+const DEFAULT_MODEL_ID = process.env.WAV2VEC2_MODEL_ID || "facebook/wav2vec2-large-960h";
 
 function getPythonExecutable(): string {
   if (process.env.PYTHON_PATH && fs.existsSync(process.env.PYTHON_PATH)) {
@@ -63,7 +67,7 @@ function runPythonWorker(
       } catch {
         // ignore
       }
-      reject(new SpeechProviderError("whisper-large-v3", "TIMEOUT", `Whisper worker timed out after ${timeoutMs}ms`));
+      reject(new SpeechProviderError("wav2vec2-large-960h", "TIMEOUT", `Wav2Vec2 worker timed out after ${timeoutMs}ms`));
     }, timeoutMs);
 
     child.stdout.on("data", (data) => {
@@ -80,7 +84,7 @@ function runPythonWorker(
       clearTimeout(timer);
       reject(
         new SpeechProviderError(
-          "whisper-large-v3",
+          "wav2vec2-large-960h",
           "LOCAL_WORKER_ERROR",
           `Failed to launch Python worker: ${err.message}. Ensure Python 3 with transformers and torch is installed.`,
         ),
@@ -101,23 +105,22 @@ function runPythonWorker(
   });
 }
 
-export const whisperProvider: SpeechProvider = {
-  id: "whisper-large-v3",
-  name: "OpenAI Whisper Large v3 (Local Open-Weight)",
+export const wav2vec2Provider: SpeechProvider = {
+  id: "wav2vec2-large-960h",
+  name: "Meta Wav2Vec2 Large 960h (Local Baseline)",
   model: DEFAULT_MODEL_ID,
   runtime: "local",
   get isLive(): boolean {
-    // Local provider is live when local Python environment is available
     return true;
   },
-  supportedLanguagePairs: WHISPER_SUPPORTED_LANGUAGE_PAIRS,
+  supportedLanguagePairs: WAV2VEC2_SUPPORTED_LANGUAGE_PAIRS,
 
   async transcribe(input: AudioInput): Promise<SpeechResult> {
     // Development/benchmark escape hatch
     if (input.devTranscriptOverride !== undefined) {
       return {
-        provider: "whisper-large-v3",
-        providerName: "whisper-large-v3 (dev-override)",
+        provider: "wav2vec2-large-960h",
+        providerName: "wav2vec2-large-960h (dev-override)",
         model: DEFAULT_MODEL_ID,
         runtime: "local",
         transcript: input.devTranscriptOverride,
@@ -138,7 +141,7 @@ export const whisperProvider: SpeechProvider = {
       if (!tempAudioPath) {
         const tmpDir = path.resolve(process.cwd(), ".tmp");
         if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-        tempAudioPath = path.join(tmpDir, `whisper_${Date.now()}_${Math.random().toString(36).slice(2)}.wav`);
+        tempAudioPath = path.join(tmpDir, `w2v2_${Date.now()}_${Math.random().toString(36).slice(2)}.wav`);
         fs.writeFileSync(tempAudioPath, buffer);
         createdTempFile = true;
       }
@@ -146,12 +149,12 @@ export const whisperProvider: SpeechProvider = {
       const buf = fs.readFileSync(tempAudioPath);
       audioSha256 = crypto.createHash("sha256").update(buf).digest("hex");
     } else {
-      throw new SpeechProviderError("whisper-large-v3", "EMPTY_AUDIO", "No audio bytes or valid audio path provided.");
+      throw new SpeechProviderError("wav2vec2-large-960h", "EMPTY_AUDIO", "No audio bytes or valid audio path provided.");
     }
 
     try {
       const { stdout, stderr, exitCode } = await runPythonWorker(
-        "whisper_worker.py",
+        "wav2vec2_worker.py",
         ["--audio", tempAudioPath, "--model", DEFAULT_MODEL_ID],
         undefined,
         180_000,
@@ -159,9 +162,9 @@ export const whisperProvider: SpeechProvider = {
 
       if (exitCode !== 0 && !stdout.trim()) {
         throw new SpeechProviderError(
-          "whisper-large-v3",
+          "wav2vec2-large-960h",
           "LOCAL_WORKER_ERROR",
-          `Whisper local worker exited with code ${exitCode}: ${stderr}`,
+          `Wav2Vec2 local worker exited with code ${exitCode}: ${stderr}`,
         );
       }
 
@@ -181,23 +184,23 @@ export const whisperProvider: SpeechProvider = {
         parsed = JSON.parse(stdout.trim());
       } catch (err) {
         throw new SpeechProviderError(
-          "whisper-large-v3",
+          "wav2vec2-large-960h",
           "MALFORMED_RESPONSE",
-          `Failed to parse Whisper worker JSON output: ${stdout || (err as Error).message}`,
+          `Failed to parse Wav2Vec2 worker JSON output: ${stdout || (err as Error).message}`,
         );
       }
 
       if (!parsed.success) {
         throw new SpeechProviderError(
-          "whisper-large-v3",
+          "wav2vec2-large-960h",
           "LOCAL_WORKER_ERROR",
-          parsed.error || "Whisper local transcription failed.",
+          parsed.error || "Wav2Vec2 local transcription failed.",
         );
       }
 
       return {
-        provider: "whisper-large-v3",
-        providerName: "whisper-large-v3",
+        provider: "wav2vec2-large-960h",
+        providerName: "wav2vec2-large-960h",
         model: parsed.model || DEFAULT_MODEL_ID,
         runtime: "local",
         transcript: parsed.transcript || "",
@@ -211,7 +214,7 @@ export const whisperProvider: SpeechProvider = {
           deviceName: parsed.deviceName,
           warmInferenceLatencyMs: parsed.warmInferenceLatencyMs,
           coldStartMs: parsed.coldStartMs,
-          mode: "local-open-weight",
+          mode: "local-open-weight-baseline",
         },
       };
     } finally {
@@ -229,11 +232,11 @@ export const whisperProvider: SpeechProvider = {
     const checkedAt = new Date().toISOString();
     const started = Date.now();
     try {
-      const { stdout, exitCode } = await runPythonWorker("whisper_worker.py", ["--health"], undefined, 30_000);
+      const { stdout, exitCode } = await runPythonWorker("wav2vec2_worker.py", ["--health"], undefined, 30_000);
       if (exitCode !== 0) {
         return {
           state: "unreachable",
-          message: "Failed to run Whisper local health check.",
+          message: "Failed to run Wav2Vec2 local health check.",
           checkedAt,
           latencyMs: Date.now() - started,
           model: DEFAULT_MODEL_ID,
@@ -245,8 +248,8 @@ export const whisperProvider: SpeechProvider = {
       const state = parsed.status === "READY" ? "model_ready" : "model_download_required";
       const message =
         parsed.status === "READY"
-          ? `Whisper Large v3 is cached locally and ready for inference on ${parsed.deviceName || parsed.device}.`
-          : `Whisper Large v3 open weights will download from Hugging Face cache on first benchmark run. No API key required.`;
+          ? `Wav2Vec2 Large 960h is cached locally and ready for inference on ${parsed.deviceName || parsed.device}.`
+          : `Wav2Vec2 Large 960h open weights (~1.26 GB) will download on first benchmark run. No API key required.`;
 
       return {
         state,
@@ -260,7 +263,7 @@ export const whisperProvider: SpeechProvider = {
     } catch (err) {
       return {
         state: "unknown_error",
-        message: `Local Whisper check error: ${(err as Error).message}`,
+        message: `Local Wav2Vec2 check error: ${(err as Error).message}`,
         checkedAt,
         latencyMs: Date.now() - started,
         model: DEFAULT_MODEL_ID,

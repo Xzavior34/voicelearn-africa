@@ -30,18 +30,22 @@ interface TurnLog {
 const STARTER_PROMPTS = [
   {
     subject: "Mathematics",
+    badge: "Math",
     prompt: "Why negative times negative dey give positive?",
   },
   {
     subject: "Science",
+    badge: "Biology",
     prompt: "Why do plants need sunlight?",
   },
   {
     subject: "Science",
+    badge: "Physics",
     prompt: "Wetin be evaporation?",
   },
   {
     subject: "English",
+    badge: "English",
     prompt: "What's the difference between affect and effect?",
   },
 ];
@@ -57,15 +61,16 @@ export default function VoiceTutor({ initialPrompt }: { initialPrompt?: string }
   const [systemNote, setSystemNote] = useState<string | null>(null);
 
   const turnContainerRef = useRef<HTMLDivElement>(null);
-  // Guards against stale async tutor responses
   const turnGuardRef = useRef(createTurnGuard());
-  // Guards against state updates after unmount
   const isMountedRef = useRef(true);
 
   useEffect(() => {
     isMountedRef.current = true;
     return () => {
       isMountedRef.current = false;
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
     };
   }, []);
 
@@ -87,6 +92,9 @@ export default function VoiceTutor({ initialPrompt }: { initialPrompt?: string }
     setSystemNote(null);
     setManualText("");
     setShowManualInput(false);
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
   }, [recorder]);
 
   const submitTranscript = useCallback(
@@ -147,7 +155,6 @@ export default function VoiceTutor({ initialPrompt }: { initialPrompt?: string }
     [session],
   );
 
-  // Automatically submit initialPrompt once when arriving from external link or homepage
   const hasSubmittedInitialPromptRef = useRef(false);
   useEffect(() => {
     if (!initialPrompt || hasSubmittedInitialPromptRef.current) return;
@@ -204,6 +211,18 @@ export default function VoiceTutor({ initialPrompt }: { initialPrompt?: string }
       await recorder.start();
     }
   }, [recorder, submitAudio]);
+
+  // Keyboard accessibility: Spacebar or Enter triggers voice recording when not in an input field
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "Space" && e.target === document.body) {
+        e.preventDefault();
+        handleMicPress();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleMicPress]);
 
   const handleManualSubmit = useCallback(
     (e: React.FormEvent) => {
@@ -383,15 +402,16 @@ export default function VoiceTutor({ initialPrompt }: { initialPrompt?: string }
       {/* 3. Empty State Starter Pills */}
       {stage === "curious" && !showManualInput && phase !== "speech_unavailable" && (
         <div className="flex flex-col items-center gap-3 animate-fade-in">
-          <div className="flex flex-wrap justify-center gap-2 max-w-lg">
+          <div className="flex flex-wrap justify-center gap-2.5 max-w-lg">
             {STARTER_PROMPTS.map((item) => (
               <button
                 key={item.prompt}
                 type="button"
                 onClick={() => submitTranscript(item.prompt)}
-                className="rounded-full border border-line bg-paper-card/70 px-4 py-2.5 text-xs sm:text-sm text-ink-soft hover:text-ink hover:border-indigo-border hover:bg-indigo-light/60 transition-all text-left shadow-2xs active:scale-[0.98] min-h-[44px]"
+                className="group inline-flex items-center gap-2 rounded-full border border-line bg-paper-card/70 px-4 py-2.5 text-xs sm:text-sm text-ink-soft hover:text-ink hover:border-indigo-border hover:bg-indigo-light/60 transition-all text-left shadow-2xs active:scale-[0.98] min-h-[44px]"
               >
-                &ldquo;{item.prompt}&rdquo;
+                <span className="text-[10px] font-semibold text-indigo font-mono bg-paper px-2 py-0.5 rounded-full border border-line">{item.badge}</span>
+                <span>&ldquo;{item.prompt}&rdquo;</span>
               </button>
             ))}
           </div>
@@ -487,7 +507,24 @@ function CurrentMoment({
   topic: string;
   difficulty: number;
 }) {
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const showLanguageNote = turn.languageNote && turn.languageNote !== "Standard English";
+
+  const toggleSpeak = useCallback(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (isPlayingAudio) {
+      window.speechSynthesis.cancel();
+      setIsPlayingAudio(false);
+    } else if (turn.tutorResponse) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(turn.tutorResponse.explanation);
+      utterance.rate = 0.95;
+      utterance.onend = () => setIsPlayingAudio(false);
+      utterance.onerror = () => setIsPlayingAudio(false);
+      setIsPlayingAudio(true);
+      window.speechSynthesis.speak(utterance);
+    }
+  }, [isPlayingAudio, turn.tutorResponse]);
 
   return (
     <div className="flex flex-col gap-6 animate-fade-in w-full">
@@ -536,11 +573,27 @@ function CurrentMoment({
           )}
 
           {/* Structured Pedagogical Explanation */}
-          <div className="rounded-3xl border border-line bg-paper-card/70 p-6 sm:p-7 text-sm sm:text-base text-ink leading-relaxed shadow-2xs text-left">
-            <p className="text-xs uppercase tracking-widest text-indigo font-bold mb-2">Concept Breakdown</p>
+          <div className="rounded-3xl border border-line bg-paper-card/70 p-6 sm:p-7 text-sm sm:text-base text-ink leading-relaxed shadow-2xs text-left relative">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs uppercase tracking-widest text-indigo font-bold">Concept Breakdown</p>
+              {typeof window !== "undefined" && "speechSynthesis" in window && (
+                <button
+                  type="button"
+                  onClick={toggleSpeak}
+                  aria-label={isPlayingAudio ? "Stop reading explanation" : "Listen to explanation"}
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-indigo hover:text-indigo-soft px-2.5 py-1 rounded-full bg-indigo-light border border-indigo-border/60 transition-colors"
+                >
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <path d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                  </svg>
+                  <span>{isPlayingAudio ? "Stop Audio" : "Listen"}</span>
+                </button>
+              )}
+            </div>
+
             <div className="space-y-3">
               {turn.tutorResponse.explanation.split(". ").reduce<string[]>((acc, sentence, idx, arr) => {
-                // Group sentences into readable paragraphs
                 if (idx % 2 === 0) {
                   acc.push(sentence + (idx < arr.length - 1 ? ". " : ""));
                 } else {

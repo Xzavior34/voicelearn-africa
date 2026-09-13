@@ -1,13 +1,15 @@
 /**
- * VoiceLearn Africa — Reproducible Benchmark CLI.
+ * VoiceLearn Africa — Reproducible Multi-Model Benchmark CLI.
+ *
+ * Models evaluated:
+ *   1. Model A: Intron Sahara v2.5 (sahara) — Remote WebSocket API
+ *   2. Model B: OpenAI Whisper Large v3 (whisper-large-v3) — Local open weights (Apache-2.0)
+ *   3. Model C: Meta Wav2Vec2 Large 960h (wav2vec2-large-960h) — Local open weights baseline (Apache-2.0)
+ *
+ * ZERO PAID ASR API DEPENDENCIES.
  *
  * Usage:
  *   npm run benchmark
- *   npm run benchmark:all
- *
- * Evaluates the 3 speech models on the African Code-Switching dataset,
- * measures WER, CER, Code-Switch Preservation, and Downstream Tutoring Performance,
- * and saves machine-readable JSON + human-readable Markdown reports.
  */
 import { writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join, resolve } from "node:path";
@@ -26,6 +28,8 @@ import { BENCHMARK_DATASET } from "../lib/benchmark/dataset/dataset";
 async function main() {
   console.log("=================================================================");
   console.log(" VoiceLearn Africa — Three-Model Code-Switch Benchmark Runner");
+  console.log(" Sahara v2.5 (Remote) vs. Whisper Large v3 (Local) vs. Wav2Vec2 (Local)");
+  console.log(" ZERO PAID ASR API DEPENDENCIES");
   console.log("=================================================================\n");
 
   const reportsDir = join(__dirname, "..", "lib", "benchmark", "reports");
@@ -33,23 +37,26 @@ async function main() {
   mkdirSync(reportsDir, { recursive: true });
   mkdirSync(resultsDir, { recursive: true });
 
-  console.log(`Loaded ${BENCHMARK_DATASET.length} dataset samples.`);
-  console.log("Models evaluated: Intron Sahara v2.5, OpenAI Whisper Large v3, Google Gemini Audio\n");
+  console.log(`Loaded ${BENCHMARK_DATASET.length} total dataset records.`);
+  const audioCount = BENCHMARK_DATASET.filter((s) => s.audioFilePath && existsSync(s.audioFilePath)).length;
+  console.log(`Audio recordings present on disk: ${audioCount}`);
+  console.log("Models: [1] Intron Sahara v2.5  [2] OpenAI Whisper Large v3  [3] Meta Wav2Vec2 Large 960h\n");
 
-  console.log("=== Part 1: Speech-to-Text Multi-Model Evaluation ===");
-  const asr = await runAsrComparison(["sahara", "whisper-large-v3", "gemini"]);
+  console.log("=== Part 1: Speech-to-Text & Downstream Learning Evaluation ===");
+  const asr = await runAsrComparison(["sahara", "whisper-large-v3", "wav2vec2-large-960h"]);
 
   for (const summary of asr.summaries) {
     console.log(
-      `  • ${summary.providerName} (${summary.model}): ` +
-      `live=${summary.isLive} | audioOnDisk=${summary.audioSamplesAvailable}/${summary.totalDatasetSamples} ` +
+      `  • ${summary.providerName} (${summary.model}) [${summary.runtime}]: ` +
+      `audioOnDisk=${summary.audioSamplesAvailable}/${summary.totalDatasetSamples} ` +
       `| measured=${summary.samplesMeasured} | status=${summary.statusLabel}`
     );
     if (summary.samplesMeasured > 0) {
       console.log(
-        `    -> Mean WER: ${(summary.meanWer! * 100).toFixed(1)}% | ` +
+        `    -> WER: ${(summary.meanWer! * 100).toFixed(1)}% | ` +
         `CER: ${(summary.meanCer! * 100).toFixed(1)}% | ` +
-        `Tutor Success: ${(summary.tutorSuccessRate! * 100).toFixed(1)}% | ` +
+        `CS-WER: ${summary.codeSwitchWer !== null ? (summary.codeSwitchWer * 100).toFixed(1) + "%" : "N/A"} | ` +
+        `Speech-to-Learning Success: ${(summary.speechToLearningSuccessRate! * 100).toFixed(1)}% | ` +
         `Latency: ${summary.meanLatencyMs!.toFixed(0)}ms`
       );
     }
@@ -75,69 +82,53 @@ async function main() {
   }, null, 2));
 
   const evaluationDate = new Date().toISOString().slice(0, 10);
-  const reportMd = `# VoiceLearn Africa — Code-Switching Speech & Downstream Benchmark Report
+  const reportMd = `# VoiceLearn Africa — Three-Model Code-Switching Speech Benchmark Report
 **Generated:** ${evaluationDate}  
-**Dataset:** ${BENCHMARK_DATASET.length} samples (Standard English, Nigerian Pidgin, Code-Switched English-Pidgin, Code-Switched English-Yoruba)  
+**Dataset:** ${BENCHMARK_DATASET.length} curriculum samples (${audioCount} audio files evaluated)  
 **Run ID:** \`${asr.metadata.runId}\`
 
 ---
 
 ## 1. Multi-Model Speech Recognition Comparison
 
-| Speech Engine | Model ID | Live | Audio Available | Evaluated | Mean WER | Mean CER | Code-Switch Preservation | Tutor Success | Median Latency | Status |
-|---|---|---|---|---|---|---|---|---|---|---|
+| Model | Runtime | Audio Samples | Evaluated | WER | CER | Code-Switch WER | Speech-to-Learning Success | Warm Latency | Status |
+|---|---|---|---|---|---|---|---|---|---|
 ${asr.summaries
   .map((s) => {
     const wer = s.meanWer !== null ? `${(s.meanWer * 100).toFixed(1)}%` : "—";
     const cer = s.meanCer !== null ? `${(s.meanCer * 100).toFixed(1)}%` : "—";
-    const csp = s.meanCodeSwitchPreservation !== null ? `${(s.meanCodeSwitchPreservation * 100).toFixed(1)}%` : "—";
-    const tutor = s.tutorSuccessRate !== null ? `${(s.tutorSuccessRate * 100).toFixed(1)}%` : "—";
+    const cswer = s.codeSwitchWer !== null ? `${(s.codeSwitchWer * 100).toFixed(1)}%` : "—";
+    const s2l = s.speechToLearningSuccessRate !== null ? `${(s.speechToLearningSuccessRate * 100).toFixed(1)}%` : "—";
     const lat = s.meanLatencyMs !== null ? `${s.meanLatencyMs.toFixed(0)}ms` : "—";
-    return `| **${s.providerName}** | \`${s.model}\` | ${s.isLive ? "✅ Yes" : "❌ No"} | ${s.audioSamplesAvailable}/${s.totalDatasetSamples} | ${s.samplesMeasured} | ${wer} | ${cer} | ${csp} | ${tutor} | ${lat} | \`${s.statusLabel}\` |`;
+    return `| **${s.providerName}** | \`${s.runtime}\` | ${s.audioSamplesAvailable}/${s.totalDatasetSamples} | ${s.samplesMeasured} | ${wer} | ${cer} | ${cswer} | ${s2l} | ${lat} | \`${s.statusLabel}\` |`;
   })
   .join("\n")}
 
 ---
 
-## 2. Linguistic Tier Breakdown
+## 2. Downstream Agentic Learning Pipeline (Ground Truth Baseline)
 
-| Category | Description | Dataset Samples |
-|---|---|---|
-| **Tier 1: Standard English** | Monolingual formal English baseline across mathematics, science, English, physics, and chemistry. | 6 |
-| **Tier 2: Nigerian Pidgin** | Monolingual Nigerian Pidgin educational phrasing. | 6 |
-| **Tier 3: English <-> Nigerian Pidgin** | Real classroom code-switching mixing subject vocabulary with Pidgin connective phrases. | 14 |
-| **Tier 4: English <-> Yoruba** | Classroom code-switching mixing Yoruba grammar with English subject vocabulary. | 6 |
-| **Follow-up Answers** | Learner responses to follow-up questions for downstream assessment verification. | 2 |
+- **Total Initial Turns:** ${intent.summary.totalSamples}
+- **Concept Entity Extraction Accuracy:** ${(intent.summary.accuracy * 100).toFixed(1)}% (${intent.summary.correct}/${intent.summary.totalSamples})
+- **Curriculum Topic Match Accuracy:** ${(intent.summary.topicAccuracy * 100).toFixed(1)}%
 
 ---
 
-## 3. Downstream Educational Reasoning Baseline (No ASR)
+## 3. Fair Comparison Notice
 
-- **Concept Identification Accuracy:** **${(intent.summary.accuracy * 100).toFixed(1)}%** (${intent.summary.correct}/${intent.summary.totalSamples} initial question samples)
-- **Subject / Topic Classification Accuracy:** **${(intent.summary.topicAccuracy * 100).toFixed(1)}%**
-- **Evaluation Purpose:** Isolates the tutor reasoning pipeline from speech recognition, establishing the performance ceiling when transcription is 100% accurate.
-
----
-
-## 4. Reproducibility & Auditing
-
-Every metric in this report is deterministic and verifiable locally:
-\`\`\`bash
-npm test                  # 100% automated test suite
-npm run benchmark:health  # Test provider API connectivity
-npm run benchmark:all     # Run full 3-model benchmark
-\`\`\`
+Sahara is evaluated as the challenge-specific speech model via remote API. Whisper Large v3 and Wav2Vec2 Large 960h are independently executed local open-weight baselines under Apache-2.0 licenses. All models receive the exact same normalized audio (16kHz mono PCM16, SHA-256 verified) and are evaluated against identical human-reviewed reference transcripts.
 `;
 
+  writeFileSync(join(reportsDir, "benchmark-report.md"), reportMd);
   writeFileSync(join(reportsDir, "SUMMARY-latest.md"), reportMd);
-  writeFileSync(join(resultsDir, "benchmark-report.md"), reportMd);
 
-  console.log(`\n✅ Reports generated successfully in:`);
-  console.log(`   - ${reportsDir}`);
-  console.log(`   - ${resultsDir}`);
+  console.log(`\nSaved benchmark artifacts to:`);
+  console.log(`  - ${join(resultsDir, "raw-results.json")}`);
+  console.log(`  - ${join(resultsDir, "summary.json")}`);
+  console.log(`  - ${join(reportsDir, "benchmark-report.md")}`);
 }
 
 main().catch((err) => {
-  console.error("Benchmark failed:", err);
+  console.error("Benchmark runner failed:", err);
   process.exit(1);
 });

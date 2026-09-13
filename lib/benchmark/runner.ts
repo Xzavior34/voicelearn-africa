@@ -19,6 +19,7 @@ export interface AsrSampleResult {
   provider: string;
   providerName: string;
   model: string;
+  runtime: "remote-api" | "local";
   status: "measured" | "requires_api_access" | "local_device_test_required" | "audio_dataset_required" | "error";
   referenceTranscript: string;
   hypothesisTranscript: string | null;
@@ -31,6 +32,9 @@ export interface AsrSampleResult {
   codeSwitchPreservation: number | null;
   lexicalOverlap: number | null;
   latencyMs: number | null;
+  warmInferenceLatencyMs?: number | null;
+  coldStartMs?: number | null;
+  device?: string | null;
   downstream: DownstreamTutorEval | null;
   audioHash?: string | null;
   errorMessage?: string;
@@ -48,6 +52,7 @@ export interface AsrProviderSummary {
   provider: string;
   providerName: string;
   model: string;
+  runtime: "remote-api" | "local";
   isLive: boolean;
   totalDatasetSamples: number;
   audioSamplesAvailable: number;
@@ -58,13 +63,17 @@ export interface AsrProviderSummary {
   statusLabel: string;
   meanWer: number | null;
   meanCer: number | null;
+  codeSwitchWer: number | null;
   exactMatchRate: number | null;
   meanCodeSwitchPreservation: number | null;
   meanLexicalOverlap: number | null;
+  speechToLearningSuccessRate: number | null;
   tutorSuccessRate: number | null;
   intentAccuracy: number | null;
   topicAccuracy: number | null;
   meanLatencyMs: number | null;
+  meanWarmInferenceMs: number | null;
+  device?: string | null;
   failureRate: number;
   categories: Record<string, CategoryPerformance>;
 }
@@ -88,7 +97,7 @@ function computeAudioHash(buffer: Buffer): string {
 }
 
 export async function runAsrComparison(
-  providerNames: string[] = ["sahara", "whisper-large-v3", "gemini"],
+  providerNames: string[] = ["sahara", "whisper-large-v3", "wav2vec2-large-960h"],
 ): Promise<BenchmarkRunOutput> {
   const perSample: AsrSampleResult[] = [];
   const runId = `run-${Date.now()}`;
@@ -120,6 +129,7 @@ export async function runAsrComparison(
           provider: providerName,
           providerName: provider.name || providerName,
           model: modelName,
+          runtime: provider.runtime || (providerName === "sahara" ? "remote-api" : "local"),
           status,
           referenceTranscript: sample.referenceTranscript,
           hypothesisTranscript: null,
@@ -145,6 +155,7 @@ export async function runAsrComparison(
         const result = await provider.transcribe({
           audioBytes,
           mimeType,
+          audioPath: sample.audioFilePath ?? undefined,
           languagePair: sample.languagePair === "pcm" ? "en-pcm" : sample.languagePair,
         });
 
@@ -155,6 +166,7 @@ export async function runAsrComparison(
           provider: providerName,
           providerName: provider.name || providerName,
           model: result.model || modelName,
+          runtime: result.runtime || provider.runtime || (providerName === "sahara" ? "remote-api" : "local"),
           status: "measured",
           referenceTranscript: sample.referenceTranscript,
           hypothesisTranscript: result.transcript,
@@ -167,6 +179,9 @@ export async function runAsrComparison(
           codeSwitchPreservation: codeSwitchPreservation(sample.referenceTranscript, result.transcript),
           lexicalOverlap: lexicalOverlapProxy(sample.referenceTranscript, result.transcript),
           latencyMs: result.latencyMs,
+          warmInferenceLatencyMs: result.metadata?.warmInferenceLatencyMs ?? result.latencyMs,
+          coldStartMs: result.metadata?.coldStartMs ?? null,
+          device: result.metadata?.device ?? null,
           downstream,
           audioHash,
         });
@@ -178,6 +193,7 @@ export async function runAsrComparison(
           provider: providerName,
           providerName: provider.name || providerName,
           model: modelName,
+          runtime: provider.runtime || (providerName === "sahara" ? "remote-api" : "local"),
           status: isConfigError ? "requires_api_access" : isAudioMissing ? "local_device_test_required" : "error",
           referenceTranscript: sample.referenceTranscript,
           hypothesisTranscript: null,
@@ -216,7 +232,7 @@ export async function runAsrComparison(
             : "Some audio samples could not be processed")
         : `Provider ${provider.name || providerName} is not configured (REQUIRES_API_ACCESS)`;
       const statusLabel = isLive
-        ? (measured.length > 0 ? "VERIFIED" : "LIVE_AUTHENTICATED (AUDIO_DATASET_REQUIRED)")
+        ? (measured.length > 0 ? "VERIFIED" : "LIVE_READY (AUDIO_DATASET_REQUIRED)")
         : "BLOCKED (REQUIRES_API_ACCESS)";
 
       const mean = (values: (number | null)[]) => {
@@ -241,15 +257,22 @@ export async function runAsrComparison(
         };
       }
 
+      const csCategories = ["nigerian_pidgin", "english_pidgin", "english_yoruba", "educational_code_switching"];
+      const csMeasuredRows = measured.filter((r) => csCategories.includes(r.category));
+      const codeSwitchWer = mean(csMeasuredRows.map((r) => r.wer));
+
       const exactMatchCount = measured.filter((r) => r.exactMatch === true).length;
       const tutorSuccessCount = measured.filter((r) => r.downstream?.tutorSuccess === true).length;
       const intentSuccessCount = measured.filter((r) => r.downstream?.intentMatched === true).length;
       const topicSuccessCount = measured.filter((r) => r.downstream?.topicMatched === true).length;
 
+      const deviceUsed = measured.find((r) => r.device)?.device;
+
       return {
         provider: providerName,
         providerName: provider.name || providerName,
         model: provider.model || providerName,
+        runtime: provider.runtime || (providerName === "sahara" ? "remote-api" : "local"),
         isLive,
         totalDatasetSamples: rows.length,
         audioSamplesAvailable: audioAvailableCount,
@@ -260,13 +283,17 @@ export async function runAsrComparison(
         statusLabel,
         meanWer: mean(measured.map((r) => r.wer)),
         meanCer: mean(measured.map((r) => r.cer)),
+        codeSwitchWer,
         exactMatchRate: measured.length > 0 ? exactMatchCount / measured.length : null,
         meanCodeSwitchPreservation: mean(measured.map((r) => r.codeSwitchPreservation)),
         meanLexicalOverlap: mean(measured.map((r) => r.lexicalOverlap)),
+        speechToLearningSuccessRate: measured.length > 0 ? tutorSuccessCount / measured.length : null,
         tutorSuccessRate: measured.length > 0 ? tutorSuccessCount / measured.length : null,
         intentAccuracy: measured.length > 0 ? intentSuccessCount / measured.length : null,
         topicAccuracy: measured.length > 0 ? topicSuccessCount / measured.length : null,
         meanLatencyMs: mean(measured.map((r) => r.latencyMs)),
+        meanWarmInferenceMs: mean(measured.map((r) => r.warmInferenceLatencyMs ?? r.latencyMs)),
+        device: deviceUsed,
         failureRate: rows.length > 0 ? (rows.length - measured.length) / rows.length : 0,
         categories,
       };

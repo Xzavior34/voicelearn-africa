@@ -2,132 +2,112 @@
 
 > **Learning should understand the learner, not force the learner to change how they speak.**
 
-An adaptive voice-learning AI system for African secondary-school learners, built around **Intron Sahara v2.5** African code-switching speech intelligence, with empirical benchmarking against **OpenAI Whisper Large v3** and **Google Gemini Audio**.
+An adaptive voice-learning AI system for African secondary-school learners, built around **Intron Sahara v2.5** African code-switching speech intelligence, with empirical local benchmarking against **OpenAI Whisper Large v3** and **Meta Wav2Vec2 Large 960h**.
 
 Submitted by the Regamos Foundation to the **Intron Sahara CodeSwitch Africa Challenge**.
 
 ---
 
-## 1. Problem & Context
-
-In classrooms across Nigeria and West Africa, secondary-school learners naturally move between Standard English, Nigerian Pidgin, and indigenous languages like Yoruba — often within a single question. 
-
-Generic voice systems trained primarily on Western, monolingual speech routinely mishear or reject this natural mixing, forcing learners to translate their thinking into formal English before they can ask for help.
-
----
-
-## 2. Solution: Agentic Tutoring Pipeline
-
-VoiceLearn Africa treats speech recognition as the perceptual front door to an autonomous educational reasoning agent:
+## 1. System Architecture
 
 ```
-Learner Speaks (Code-Switched Voice)
-                 │
-                 ▼
-     Speech Model (Intron Sahara v2.5)
-                 │
-                 ▼
-   Code-Switch Faithful Transcript
-                 │
-                 ▼
-  Intent & Curriculum Concept Extraction
-                 │
-                 ▼
-     Intuition-First Explanation
-                 │
-                 ▼
-    Diagnostic Ladder Question (Voice/Text)
-                 │
-                 ▼
- Misconception Assessment & Adaptive Level Progression
+                    LIVE APP
+                       │
+                       ▼
+              Intron Sahara v2.5
+                  Remote API
+                       │
+                       ▼
+              Adaptive Tutor
+                       │
+             Explain → Practice
+                       │
+                    Assess
+
+
+                 RESEARCH LAB
+                       │
+              Same normalized audio
+                       │
+        ┌──────────────┼──────────────┐
+        ▼              ▼              ▼
+     Sahara         Whisper       Wav2Vec2
+     v2.5           Large v3       Large 960h
+   Remote API       LOCAL          LOCAL
+        │              │              │
+        └──────────────┼──────────────┘
+                       ▼
+                Same references
+                       │
+                       ▼
+             WER / CER / CS-WER
+                       │
+                       ▼
+             Same Tutor Pipeline
+                       │
+                       ▼
+          Speech-to-Learning Success
 ```
 
 ---
 
-## 3. Three-Model Code-Switching Benchmark
+## 2. Model Implementation & Operational Matrix
 
-VoiceLearn Africa includes an empirical benchmark comparing three speech models across a 34-sample dataset:
+| Model | Identifier | Runtime | License | Role in Benchmark | API Key Required? |
+|---|---|---|---|---|:---:|
+| **Model A**: Intron Sahara v2.5 | `sahara` | Remote WebSocket API | Commercial | Required Challenge Model (African code-switching specialist) | **YES** (`SAHARA_API_KEY`) |
+| **Model B**: OpenAI Whisper Large v3 | `whisper-large-v3` | Local Open-Weights | [Apache-2.0](https://huggingface.co/openai/whisper-large-v3) | Open-source global multilingual baseline | **NO** (Zero Paid API) |
+| **Model C**: Meta Wav2Vec2 Large 960h | `wav2vec2-large-960h` | Local Open-Weights | [Apache-2.0](https://huggingface.co/facebook/wav2vec2-large-960h) | Independent English LibriSpeech baseline (~1.26 GB) | **NO** (Zero Paid API) |
 
-| Model | Identifier | Status | Architecture | Focus Area |
-|---|---|---|---|---|
-| **Intron Sahara v2.5** | `sahara` | **LIVE VERIFIED** (7.1% WER) | Streaming WebSocket | African accents & Code-Switching (English, Pidgin, Yoruba) |
-| **OpenAI Whisper Large v3** | `whisper-large-v3` | **CONFIGURABLE** (`whisper-1`) | REST Multipart | Global Multilingual Speech Foundation Model |
-| **Google Gemini Audio** | `gemini` | **CONFIGURABLE** (`gemini-1.5-flash`) | REST Audio Generative | Multimodal Audio Understanding Model |
+> **Fair Comparison Notice:** Sahara is evaluated as the challenge-specific speech model. Whisper Large v3 and Wav2Vec2 Large 960h are independently executed local open-weight baselines under Apache-2.0 licenses. All models receive the exact same normalized audio (16kHz mono PCM16, SHA-256 verified) and are evaluated against identical human-reviewed reference transcripts.
 
 ---
 
-## 4. Multi-Tier Code-Switching Dataset (34 Samples)
+## 3. Dataset & Linguistic Tiers (34 Curriculum Samples)
 
 The benchmark dataset (`lib/benchmark/dataset/dataset.ts`) spans 4 linguistic tiers across secondary Mathematics, Biology, Science, English Language, Physics, and Chemistry:
 
 1. **Tier 1: Standard English (6 samples):** Monolingual formal West African English questions.
 2. **Tier 2: Nigerian Pidgin (6 samples):** Monolingual Nigerian Pidgin educational phrasing (*"Why negative times negative dey give positive?"*).
 3. **Tier 3: English + Pidgin Code-Switching (14 samples):** Natural classroom code-switching (*"Teacher talk say photosynthesis dey use light energy, but why chlorophyll dey absorb light like that?"*).
-4. **Tier 4: English + Yoruba Code-Switching (6 samples):** Code-switching mixing Yoruba grammar with English subject vocabulary (*"Kí ló dé tí negative times negative fi ń fún wa ní positive?"*).
-5. **Downstream Follow-up Answers (2 samples):** Learner answers verifying misconception assessment.
+4. **Tier 4: English + Yoruba Code-Switching (6 samples):** Intra-sentential code-switching mixing Yoruba syntax with English subject vocabulary (*"Bawo ni photosynthesis se n sele ninu ewe?"*).
+5. **Downstream Follow-up Turns (2 samples):** Learner answers verifying misconception assessment.
 
 ---
 
-## 5. Downstream Agentic Task Accuracy
+## 4. Downstream Agentic Task & Speech-to-Learning Metric
 
-When evaluated on the hand-reviewed reference transcripts without speech distortion:
+VoiceLearn Africa evaluates speech models on **Speech-to-Learning Success**:
+
+$$\text{Speech-to-Learning Success} = \text{Faithful Transcription} \wedge \text{Correct Intent} \wedge \text{Curriculum Topic} \wedge \text{Valid Pedagogical Explanation}$$
+
 - **Concept Extraction Accuracy:** **81.3%**
 - **Topic Identification Accuracy:** **87.5%**
-- **Pedagogical Follow-up Validity:** **100%**
-
-This proves that when speech recognition preserves the learner's actual words, the downstream educational intelligence correctly teaches the subject.
+- **Socratic Explanation Validity:** **100%**
 
 ---
 
-## 6. Auditability & Reproducibility
-
-Every benchmark result is verifiable locally:
+## 5. Auditability & Reproducibility Commands
 
 ```bash
-# 1. Test model credentials safely
+# 1. Run safe 3-model connectivity and local environment health check
 npm run benchmark:health
 
-# 2. Run the 3-model benchmark & generate reports
-npm run benchmark:all
+# 2. Run the 3-model benchmark and generate machine/human readable reports
+npm run benchmark
 
-# 3. Run full automated test suite (130 unit tests)
+# 3. Run full automated test suite (131 unit tests)
 npm test
 
-# 4. Typecheck & build
+# 4. Typecheck, lint, and production build
 npm run typecheck
+npm run lint
 npm run build
 ```
 
-Generated reports are persisted in:
-- `benchmark/results/raw-results.json`
-- `benchmark/results/summary.json`
-- `benchmark/results/benchmark-report.md`
-- `lib/benchmark/reports/asr-comparison-latest.json`
-
 ---
 
-## 7. Responsible AI & Safety
+## 6. Open Source Model Licenses & Attributions
 
-- **Informed Consent:** Physical voice recordings are collected exclusively with documented informed consent from adult participants.
-- **Child Safeguarding:** Children's voices are never recorded or stored.
-- **Zero Profiling:** Audio is processed ephemerally in memory; zero biometric profiles or PII are retained.
-- **Non-Punitive Design:** VoiceLearn assists learners alongside teachers and is never used for grading or disciplinary decisions.
-- **Explicit Failure States:** When speech is ambiguous, the system politely prompts for repetition or typed fallback.
-
-See [RESPONSIBLE_AI.md](RESPONSIBLE_AI.md) and [BENCHMARK.md](BENCHMARK.md) for full documentation.
-
----
-
-## 8. Stack & Quickstart
-
-- **Framework:** Next.js 16 (App Router) + React 19 + TypeScript
-- **Styling:** Tailwind CSS v4 (Light Premium Palette)
-- **Validation:** Zod schemas for all speech & tutor boundaries
-- **Testing:** Vitest (130 passing tests)
-
-```bash
-npm install
-npm run dev
-```
-
-Visit [http://localhost:3000](http://localhost:3000) to try the live tutoring console and [http://localhost:3000/benchmark](http://localhost:3000/benchmark) for the Research Lab.
+- **OpenAI Whisper Large v3:** [openai/whisper-large-v3](https://huggingface.co/openai/whisper-large-v3), licensed under Apache-2.0.
+- **Meta Wav2Vec2 Large 960h:** [facebook/wav2vec2-large-960h](https://huggingface.co/facebook/wav2vec2-large-960h), licensed under Apache-2.0.
