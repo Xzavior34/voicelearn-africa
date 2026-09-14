@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { spawn, spawnSync } from "node:child_process";
-import { convertToPcm16Mono16k, chunkPcm16, tryExtractPcm16Mono16kWav, AudioConversionError } from "@/lib/speech/audio-conversion";
+import { convertToPcm16Mono16k, chunkPcm16, tryExtractPcm16Mono16kWav, AudioConversionError, checkFfmpegAvailable } from "@/lib/speech/audio-conversion";
 
 const hasFfmpeg = (() => {
   try {
@@ -159,4 +159,38 @@ describe("chunkPcm16", () => {
     const chunks = chunkPcm16(pcm, 999999);
     expect(chunks[0].length).toBeLessThanOrEqual(32768);
   });
+});
+
+describe("AudioConversionError.detail", () => {
+  it("REGRESSION: never silently drops diagnostic info when stderr is empty (this was a real bug: a spawn-level failure like ENOENT/EACCES/ENOEXEC previously reported empty detail because sahara.ts read err.stderr, but the spawn error handler only ever populated err.message, leaving err.stderr as an empty string)", () => {
+    const err = new AudioConversionError("ffmpeg binary not found", "");
+    expect(err.detail).toContain("ffmpeg binary not found");
+    expect(err.detail).not.toBe("");
+  });
+
+  it("includes both message and stderr when both are present", () => {
+    const err = new AudioConversionError("ffmpeg exited with code 1", "Unknown decoder 'opus'");
+    expect(err.detail).toContain("ffmpeg exited with code 1");
+    expect(err.detail).toContain("Unknown decoder 'opus'");
+  });
+
+  it("never returns an empty string even with no detail at all", () => {
+    const err = new AudioConversionError("", "");
+    expect(err.detail.length).toBeGreaterThan(0);
+  });
+});
+
+describe("checkFfmpegAvailable", () => {
+  it("reports whether ffmpeg can actually execute, with platform/arch context for diagnosing production issues", async () => {
+    const result = await checkFfmpegAvailable();
+    expect(result.platform).toBe(process.platform);
+    expect(result.arch).toBe(process.arch);
+    expect(typeof result.canExecute).toBe("boolean");
+    if (result.canExecute) {
+      expect(result.version).toBeTruthy();
+      expect(result.error).toBeNull();
+    } else {
+      expect(result.error).toBeTruthy();
+    }
+  }, 15_000);
 });

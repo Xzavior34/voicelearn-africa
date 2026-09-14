@@ -34,10 +34,83 @@ function resolveFfmpegPath(): string {
   return "ffmpeg";
 }
 
+export interface FfmpegDiagnostic {
+  resolvedPath: string;
+  binaryExistsOnDisk: boolean;
+  platform: string;
+  arch: string;
+  nodeVersion: string;
+  canExecute: boolean;
+  version: string | null;
+  error: string | null;
+}
+
+/**
+ * Actually attempts to run "ffmpeg -version" and reports exactly what
+ * happened, distinguishing "binary not found" (ENOENT), "permission
+ * denied" (EACCES), "wrong architecture" (ENOEXEC / "Exec format error"),
+ * and "ran fine". This exists specifically so a production failure can be
+ * diagnosed with one request instead of guessing from a generic error
+ * message. Exposed via GET /api/speech/health.
+ */
+export function checkFfmpegAvailable(): Promise<FfmpegDiagnostic> {
+  const resolvedPath = resolveFfmpegPath();
+  const base: Omit<FfmpegDiagnostic, "canExecute" | "version" | "error"> = {
+    resolvedPath,
+    binaryExistsOnDisk: resolvedPath !== "ffmpeg" ? existsSync(resolvedPath) : false,
+    platform: process.platform,
+    arch: process.arch,
+    nodeVersion: process.version,
+  };
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let ffmpeg;
+    try {
+      ffmpeg = spawn(/*turbopackIgnore: true*/ resolvedPath, ["-version"]);
+    } catch (err) {
+      resolve({ ...base, canExecute: false, version: null, error: `spawn threw synchronously: ${(err as Error).message}` });
+      return;
+    }
+
+    const outChunks: Buffer[] = [];
+    ffmpeg.stdout?.on("data", (c: Buffer) => outChunks.push(c));
+
+    ffmpeg.on("error", (err: NodeJS.ErrnoException) => {
+      if (settled) return;
+      settled = true;
+      resolve({
+        ...base,
+        canExecute: false,
+        version: null,
+        error: `code=${err.code ?? "unknown"} errno=${err.errno ?? "unknown"} syscall=${err.syscall ?? "unknown"} message=${err.message}`,
+      });
+    });
+
+    ffmpeg.on("close", (code) => {
+      if (settled) return;
+      settled = true;
+      const versionLine = Buffer.concat(outChunks).toString("utf-8").split("\n")[0] || null;
+      resolve({
+        ...base,
+        canExecute: code === 0,
+        version: code === 0 ? versionLine : null,
+        error: code === 0 ? null : `ffmpeg -version exited with code ${code}`,
+      });
+    });
+  });
+}
+
 export class AudioConversionError extends Error {
   constructor(message: string, public readonly stderr: string) {
     super(message);
     this.name = "AudioConversionError";
+  }
+
+  /** Combines message and stderr for logging. Never silently drops either. */
+  get detail(): string {
+    const parts = [this.message, this.stderr].filter((s) => s && s.trim().length > 0);
+    return parts.length > 0 ? parts.join(" | stderr: ") : "(no detail captured)";
   }
 }
 
@@ -115,7 +188,13 @@ export function convertToPcm16Mono16k(input: Buffer): Promise<Buffer> {
       const message = isNotFound
         ? "ffmpeg binary not found (checked ffmpeg-static and system PATH). To transcode compressed audio (e.g. WebM/Opus), ensure the 'ffmpeg-static' dependency installed correctly, or provide uncompressed 16kHz 16-bit mono PCM WAV."
         : `Failed to spawn ffmpeg: ${err.message}`;
-      reject(new AudioConversionError(message, ""));
+      // Capture the raw Node error fields (code/errno/syscall) so a spawn
+      // failure (e.g. ENOENT missing binary, EACCES permission denied,
+      // ENOEXEC architecture mismatch) is actually visible in production
+      // logs instead of being silently dropped. Passed as the AudioConversionError's
+      // "stderr" field to preserve the existing constructor shape.
+      const diagnostic = `path=${ffmpegPath} code=${err.code ?? "unknown"} errno=${err.errno ?? "unknown"} syscall=${err.syscall ?? "unknown"} platform=${process.platform} arch=${process.arch}`;
+      reject(new AudioConversionError(message, diagnostic));
     });
 
     ffmpeg.on("close", (code) => {

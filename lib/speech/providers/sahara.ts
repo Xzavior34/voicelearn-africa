@@ -341,7 +341,7 @@ export const saharaProvider: SpeechProvider = {
     try {
       pcm = await convertToPcm16Mono16k(Buffer.from(input.audioBytes));
     } catch (err) {
-      const detail = err instanceof AudioConversionError ? err.stderr : (err as Error).message;
+      const detail = err instanceof AudioConversionError ? err.detail : (err as Error).message;
       throw new SpeechProviderError(
         "sahara",
         "AUDIO_CONVERSION_FAILED",
