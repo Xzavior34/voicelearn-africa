@@ -193,4 +193,11 @@ describe("checkFfmpegAvailable", () => {
       expect(result.error).toBeTruthy();
     }
   }, 15_000);
+
+  it("REGRESSION: resolves to a real ffmpeg-static binary path, not the broken bare 'ffmpeg' fallback (this was the exact confirmed production bug: Next.js's bundler inlined ffmpeg-static and substituted __dirname with a build-time-only path that did not exist at runtime, so resolution silently fell back to a bare 'ffmpeg' string that also does not exist on Vercel)", async () => {
+    const result = await checkFfmpegAvailable();
+    expect(result.resolvedPath).not.toBe("ffmpeg");
+    expect(result.resolvedPath).toContain("ffmpeg-static");
+    expect(result.binaryExistsOnDisk).toBe(true);
+  }, 15_000);
 });

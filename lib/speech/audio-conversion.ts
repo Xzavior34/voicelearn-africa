@@ -4,33 +4,72 @@ import { existsSync } from "node:fs";
 /**
  * Converts arbitrary browser-recorded audio (webm/opus from MediaRecorder,
  * or anything else ffmpeg can decode) into raw PCM16 little-endian, mono,
- * 16kHz — exactly what Sahara's streaming contract requires
+ * 16kHz. This is exactly what Sahara's streaming contract requires
  * (docs.voice.intron.io: sample_rate 16000, bit_rate 16, num_channels 1).
  *
  * This keeps the existing browser-side recording flow
  * (`lib/client/useSpeechRecorder.ts`, MediaRecorder) completely
- * unchanged — conversion happens server-side, in `/api/speech`, right
+ * unchanged. Conversion happens server-side, in `/api/speech`, right
  * before handing audio to the Sahara provider.
  *
- * FIXED (previously a real production bug): this used to shell out to a
- * bare `ffmpeg` on PATH, which does NOT exist on Vercel's default Node
- * serverless runtime (and often not on a fresh Termux/Android install
- * either) — every browser-recorded (webm/opus) submission silently
- * failed with AUDIO_CONVERSION_FAILED, which the UI shows as the generic
- * "I couldn't catch that clearly" message. `ffmpeg-static` bundles a
- * real portable ffmpeg binary as an npm dependency, so it's present in
- * the deployed bundle with no server/host configuration required. We
- * still fall back to a system `ffmpeg` on PATH if `ffmpeg-static` is
- * ever unavailable.
+ * ROOT CAUSE OF A REAL PRODUCTION BUG (confirmed via GET /api/speech/health
+ * in production: canExecute: false, code=ENOENT, resolvedPath: "ffmpeg"):
+ * ffmpeg-static's own index.js computes its binary path as
+ * path.join(__dirname, "ffmpeg"). Next.js's server bundler (Turbopack)
+ * inlines small packages by default and substitutes __dirname with a
+ * literal build-time path (verified directly in the compiled output:
+ * without the fix below it becomes the literal string
+ * "/ROOT/node_modules/ffmpeg-static", a build-container path that does
+ * not exist on Vercel's actual runtime filesystem). ffmpeg-static then
+ * returns that wrong path, existsSync() correctly rejects it, and the
+ * code silently fell back to a bare "ffmpeg" that also does not exist.
+ *
+ * Fixed two ways:
+ * 1. next.config.ts sets serverExternalPackages: ["ffmpeg-static"], which
+ *    tells Next.js to leave this package as a genuine runtime require()
+ *    against the real node_modules folder instead of inlining it, so
+ *    __dirname resolves correctly again. Verified directly: the compiled
+ *    output now contains a real external require reference instead of a
+ *    baked-in path string.
+ * 2. As defense in depth, independent of trusting bundler behavior,
+ *    resolveFfmpegPath() below also tries deriving the binary path via
+ *    require.resolve("ffmpeg-static/package.json"), which uses Node's
+ *    real module resolution rather than the package's own __dirname
+ *    computation, and falls back to a bare "ffmpeg" on system PATH only
+ *    as a last resort.
  */
 function resolveFfmpegPath(): string {
+  // Primary: ffmpeg-static's own export. Works correctly now that the
+  // package is externalized (see next.config.ts) rather than inlined.
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const bundled = require("ffmpeg-static") as string | null;
     if (bundled && existsSync(bundled)) return bundled;
   } catch {
-    // ffmpeg-static not installed/resolvable — fall through to system ffmpeg
+    // ffmpeg-static not installed/resolvable, fall through
   }
+
+  // Secondary: derive the path ourselves via real module resolution
+  // instead of trusting ffmpeg-static's own __dirname-based computation.
+  // This still works even if some future bundler change re-inlines the
+  // package, as long as require.resolve itself is not rewritten.
+  try {
+    const pkgJsonPath = require.resolve("ffmpeg-static/package.json");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pkg = require("ffmpeg-static/package.json") as {
+      name: string;
+      [key: string]: unknown;
+    };
+    const meta = pkg[pkg.name] as { "executable-base-name"?: string } | undefined;
+    const executableBaseName = meta?.["executable-base-name"] || "ffmpeg";
+    const packageDir = pkgJsonPath.replace(/[/\\]package\.json$/, "");
+    const suffix = process.platform === "win32" ? ".exe" : "";
+    const derivedPath = `${packageDir}/${executableBaseName}${suffix}`;
+    if (existsSync(derivedPath)) return derivedPath;
+  } catch {
+    // require.resolve failed, fall through to system ffmpeg
+  }
+
   return "ffmpeg";
 }
 
@@ -211,7 +250,7 @@ export function convertToPcm16Mono16k(input: Buffer): Promise<Buffer> {
     });
 
     ffmpeg.stdin.on("error", () => {
-      // Ignore EPIPE if ffmpeg exits before we finish writing — the
+      // Ignore EPIPE if ffmpeg exits before we finish writing. The
       // "close" handler above is the source of truth for success/failure.
     });
     ffmpeg.stdin.write(input);
