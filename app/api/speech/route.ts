@@ -58,11 +58,19 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     if (err instanceof SpeechProviderError) {
       const status = mapErrorCodeToStatus(err.code);
+      // Logged server-side so Vercel's Runtime Logs show the actual
+      // failure code/message directly — the client only ever sees the
+      // generic "I couldn't catch that clearly" UI text, which collapses
+      // every non-REQUIRES_API_ACCESS code into one message. Without
+      // this log line, diagnosing a production failure requires pulling
+      // the raw response body from the browser's Network tab instead.
+      console.error(`[/api/speech] ${err.code}: ${err.message}`);
       return NextResponse.json(
         { error: err.message, code: err.code, provider: err.providerName },
         { status },
       );
     }
+    console.error("[/api/speech] Unexpected error:", err);
     return NextResponse.json({ error: "Unexpected speech processing error." }, { status: 500 });
   }
 }

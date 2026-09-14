@@ -54,3 +54,8 @@ Models/
 *.pt
 *.bin
 
+
+Models/
+models/
+*.safetensors
+*.bin
