@@ -1,5 +1,6 @@
 import { Understanding, LearningNeed } from "./schema";
-import { findConceptByTranscript, Concept } from "./curriculum";
+import { findConceptById, Concept } from "./curriculum";
+import { routeQuestion } from "./router";
 
 /**
  * Stage 1: educational intent extraction.
@@ -44,7 +45,8 @@ export interface IntentExtractionResult {
 
 export function extractIntent(transcript: string): IntentExtractionResult {
   const trimmed = transcript.trim();
-  const matchedConcept = findConceptByTranscript(trimmed);
+  const routing = routeQuestion(trimmed);
+  const matchedConcept = routing.matched && routing.topicId ? findConceptById(routing.topicId) ?? null : null;
   const learningNeed = detectLearningNeed(trimmed);
   const languageNote = describeLanguagePattern(trimmed);
 

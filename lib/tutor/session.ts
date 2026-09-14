@@ -3,7 +3,8 @@ import { extractIntent } from "./intent";
 import { generateTutorResponse, pickLadderStep } from "./reasoning";
 import { assessAnswer } from "./assessment";
 import { adaptSession } from "./adaptation";
-import { findConceptById, findConceptByTranscript, Concept } from "./curriculum";
+import { findConceptById, Concept } from "./curriculum";
+import { routeQuestion } from "./router";
 
 /**
  * Turn-boundary classification.
@@ -104,7 +105,8 @@ export function classifyRelation(
     return "new_topic";
   }
 
-  const matchedConcept = findConceptByTranscript(trimmed);
+  const routing = routeQuestion(trimmed);
+  const matchedConcept = routing.matched && routing.topicId ? findConceptById(routing.topicId) ?? null : null;
   const isQuestion = readsAsQuestion(trimmed);
 
   if (matchedConcept) {

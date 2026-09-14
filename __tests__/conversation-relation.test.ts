@@ -108,13 +108,23 @@ describe("conversation relation classification", () => {
 });
 
 describe("additional regression: topic abandonment to a genuinely unmatched subject", () => {
-  it("'Forget that. Explain friction.' is a new topic, not a stale answer, even though 'friction' alone isn't a curriculum trigger", () => {
+  it("'Forget that. Explain quantum entanglement.' is a new topic, not a stale answer, even though the new subject isn't a curriculum trigger", () => {
+    let session = createInitialSession();
+    session = processLearnerTurn(session, "Why negative times negative go give positive?").session;
+
+    const turn = processLearnerTurn(session, "Forget that. Explain quantum entanglement.");
+    expect(turn.conversationRelation).toBe("new_topic");
+    expect(turn.assessment).toBeNull(); // must not be scored as a wrong multiplication answer
+    expect(turn.session.topic).toBe(""); // genuinely outside the curriculum, so honestly unrecognized, but must not fall back to the old topic
+  });
+
+  it("'Forget that. Explain friction.' is recognized as the friction-rolling concept (bare 'friction' is now a supported trigger)", () => {
     let session = createInitialSession();
     session = processLearnerTurn(session, "Why negative times negative go give positive?").session;
 
     const turn = processLearnerTurn(session, "Forget that. Explain friction.");
     expect(turn.conversationRelation).toBe("new_topic");
     expect(turn.assessment).toBeNull(); // must not be scored as a wrong multiplication answer
-    expect(turn.session.topic).toBe(""); // "friction" alone isn't a trigger for friction-rolling (needs "ball"), so this is honestly unrecognized — but must not fall back to the old topic
+    expect(turn.session.concept).toBe("friction-rolling");
   });
 });

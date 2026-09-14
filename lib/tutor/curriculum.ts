@@ -104,6 +104,26 @@ export const CURRICULUM: Concept[] = [
       "plant need sunlight",
       "plants need sunlight",
       "why plants need sun",
+      "leaves need sunlight",
+      "leaf need sunlight",
+      // ASR-corrupted / spacing variants of "photosynthesis" seen in real
+      // transcripts. Conservative and specific to this concept's own
+      // canonical word, not a general spelling-correction rule.
+      "photo synthesis",
+      "photo-synthesis",
+      "photosintesis",
+      "photosynthesis",
+      "photos 10 cies",
+      "photos 10-cies",
+      "fotosynthesis",
+      // Common paraphrase that never uses the word "photosynthesis" at all.
+      "how plants make food",
+      "how plant make food",
+      "plants make their food",
+      "plants make food",
+      "plant make its own food",
+      "wetin plants dey use sunlight",
+      "wetin plant dey use sunlight",
     ],
     explanation:
       "Chlorophyll is the pigment that captures light energy — mostly red and blue light — and reflects green light, which is why leaves look green. That captured light energy is what powers photosynthesis, letting the plant turn carbon dioxide and water into glucose and oxygen.",
@@ -220,6 +240,9 @@ export const CURRICULUM: Concept[] = [
       "ball stop rolling",
       "why does a ball stop",
       "why ball stop roll",
+      // The topic's own name, conservative since it is the canonical
+      // term for this concept and not used elsewhere in the curriculum.
+      "friction",
     ],
     explanation:
       "A rolling ball slows down because of friction — mainly rolling resistance between the ball and the surface, plus air resistance as it pushes through the air. Both of these act opposite to the direction of motion, continuously removing a small amount of the ball's kinetic energy until it comes to rest.",
@@ -245,7 +268,13 @@ export const CURRICULUM: Concept[] = [
     subject: "science",
     topic: "Dissolving and solutions",
     concept: "Why salt dissolves in water",
-    triggerPhrases: ["salt dissolve", "why does salt dissolve", "salt dey dissolve"],
+    triggerPhrases: [
+      "salt dissolve",
+      "why does salt dissolve",
+      "salt dey dissolve",
+      "dissolving",
+      "dissolve in water",
+    ],
     explanation:
       "Salt (sodium chloride) is made of charged ions held together by ionic bonds. Water molecules are polar — each one has a slightly negative and slightly positive end — so they surround and pull the sodium and chloride ions apart, spreading them evenly through the water. That's dissolving.",
     example: "This is also why salt doesn't dissolve well in oil — oil molecules aren't polar, so they can't pull the ions apart the same way.",
@@ -363,7 +392,7 @@ export const CURRICULUM: Concept[] = [
  * generalize better than a fixed phrase list — e.g. catching "minus"
  * as well as "negative", or numeric forms like "-7 x -8".
  */
-const REGEX_DETECTORS: Record<string, RegExp> = {
+export const REGEX_DETECTORS: Record<string, RegExp> = {
   "signed-multiplication": /(negative|minus|-\s*\d+)\D{0,15}(negative|minus|-\s*\d+)\D{0,20}(times|multipl|x\s*-?\d)/i,
   "photosynthesis-chlorophyll": /chlorophyll|photosynthes/i,
   "main-idea": /main idea|central idea/i,
