@@ -119,3 +119,30 @@ describe("topic switching / state isolation", () => {
     expect(turn2.tutorResponse?.topic).toBe("Evaporation");
   });
 });
+
+describe("Part I regression — exact four-interaction sequence (audit request)", () => {
+  it("never reuses a stale concept across: negative-times-negative (Pidgin) -> Wetin be evaporation? -> Why do plants need sunlight? -> affect/effect", () => {
+    let session = createInitialSession();
+
+    const turn1 = processLearnerTurn(session, "Why negative times negative dey give positive?");
+    expect(turn1.tutorResponse?.topic).toMatch(/multipli|negative/i);
+    session = turn1.session;
+
+    const turn2 = processLearnerTurn(session, "Wetin be evaporation?");
+    expect(turn2.tutorResponse?.topic).not.toBe(turn1.tutorResponse?.topic);
+    expect(turn2.tutorResponse?.explanation).not.toBe(turn1.tutorResponse?.explanation);
+    expect(turn2.tutorResponse?.topic?.toLowerCase()).toContain("evaporation");
+    session = turn2.session;
+
+    const turn3 = processLearnerTurn(session, "Why do plants need sunlight?");
+    expect(turn3.tutorResponse?.topic).not.toBe(turn2.tutorResponse?.topic);
+    expect(turn3.tutorResponse?.explanation).not.toBe(turn2.tutorResponse?.explanation);
+    expect(turn3.tutorResponse?.topic?.toLowerCase()).toMatch(/photosynth|chlorophyll|plant/);
+    session = turn3.session;
+
+    const turn4 = processLearnerTurn(session, "What's the difference between affect and effect?");
+    expect(turn4.tutorResponse?.topic).not.toBe(turn3.tutorResponse?.topic);
+    expect(turn4.tutorResponse?.explanation).not.toBe(turn3.tutorResponse?.explanation);
+    expect(turn4.tutorResponse?.topic?.toLowerCase()).toContain("affect");
+  });
+});

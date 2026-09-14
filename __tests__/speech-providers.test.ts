@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { saharaProvider } from "@/lib/speech/providers/sahara";
 import { whisperProvider } from "@/lib/speech/providers/whisper";
 import { wav2vec2Provider } from "@/lib/speech/providers/wav2vec2";
+import { whisperBaseProvider } from "@/lib/speech/providers/whisper-base";
 import { SpeechProvider, SpeechProviderError } from "@/lib/speech/types";
 
 describe("saharaProvider", () => {
@@ -163,5 +164,45 @@ describe("wav2vec2Provider", () => {
     expect(health.runtime).toBe("local");
     expect(health.model).toBe("facebook/wav2vec2-base-960h");
     spy.mockRestore();
+  });
+});
+
+describe("whisperBaseProvider", () => {
+  it("has correct identity, local runtime, and is a distinct provider from whisper-tiny", () => {
+    expect(whisperBaseProvider.id).toBe("whisper-base");
+    expect(whisperBaseProvider.runtime).toBe("local");
+    expect(whisperBaseProvider.model).toBe("openai/whisper-base");
+  });
+
+  it("reports isLive=false — no model files exist for whisper-base in this environment", () => {
+    expect(whisperBaseProvider.isLive).toBe(false);
+  });
+
+  it("supports dev transcript override without calling Python worker or checking model files", async () => {
+    const result = await whisperBaseProvider.transcribe({
+      audioBytes: null,
+      mimeType: "audio/wav",
+      languagePair: "en",
+      devTranscriptOverride: "Why does negative times negative give positive?",
+    });
+    expect(result.transcript).toBe("Why does negative times negative give positive?");
+    expect(result.provider).toBe("whisper-base");
+  });
+
+  it("throws MODEL_NOT_FOUND when the local model folder is missing, even with audio provided", async () => {
+    await expect(
+      whisperBaseProvider.transcribe({
+        audioBytes: new ArrayBuffer(10),
+        mimeType: "audio/wav",
+        languagePair: "en",
+      }),
+    ).rejects.toMatchObject({ code: "MODEL_NOT_FOUND" });
+  });
+
+  it("checkHealth reports model_not_found naming whisper-base specifically", async () => {
+    const health = await whisperBaseProvider.checkHealth!();
+    expect(health.state).toBe("model_not_found");
+    expect(health.message).toContain("whisper-base");
+    expect(health.runtime).toBe("local");
   });
 });

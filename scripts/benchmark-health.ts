@@ -1,10 +1,11 @@
 /**
- * Three-Model Benchmark Health Check.
+ * Four-Model Benchmark Health Check.
  *
  * Models evaluated:
- *   1. Model A: Intron Sahara v2.5 (sahara) — Remote WebSocket API (SAHARA_API_KEY)
+ *   1. Model A: Intron Sahara v2.5 (sahara) — Remote WebSocket API (SAHARA_API_KEY) — PRODUCTION model
  *   2. Model B: OpenAI Whisper Tiny (whisper-tiny) — Local, filesystem-only (Apache-2.0, zero paid API)
- *   3. Model C: Meta Wav2Vec2 Base 960h (wav2vec2-base-960h) — Local, filesystem-only baseline (Apache-2.0, zero paid API)
+ *   3. Model C: OpenAI Whisper Base (whisper-base) — Local, filesystem-only (Apache-2.0, zero paid API)
+ *   4. Model D: Meta Wav2Vec2 Base 960h (wav2vec2-base-960h) — Local, filesystem-only baseline (Apache-2.0, zero paid API)
  *
  * Usage: npm run benchmark:health
  */
@@ -21,17 +22,19 @@ for (const envFile of [".env.local", ".env"]) {
 
 import { saharaProvider } from "../lib/speech/providers/sahara";
 import { whisperProvider } from "../lib/speech/providers/whisper";
+import { whisperBaseProvider } from "../lib/speech/providers/whisper-base";
 import { wav2vec2Provider } from "../lib/speech/providers/wav2vec2";
 
 async function main() {
   console.log("=================================================================");
-  console.log(" VoiceLearn Africa — Three-Model Benchmark Health Check");
-  console.log(" ZERO PAID ASR API DEPENDENCIES (Sahara API Key for Live Product)");
+  console.log(" VoiceLearn Africa — Four-Model Benchmark Health Check");
+  console.log(" ZERO PAID ASR API DEPENDENCIES (Sahara API Key for Live Product only)");
   console.log("=================================================================\n");
 
   const providers = [
     { id: "sahara", name: "Intron Sahara v2.5", provider: saharaProvider, runtime: "Remote API" },
     { id: "whisper-tiny", name: "OpenAI Whisper Tiny", provider: whisperProvider, runtime: "Local Filesystem-Only" },
+    { id: "whisper-base", name: "OpenAI Whisper Base", provider: whisperBaseProvider, runtime: "Local Filesystem-Only" },
     { id: "wav2vec2-base-960h", name: "Meta Wav2Vec2 Base 960h", provider: wav2vec2Provider, runtime: "Local Baseline" },
   ];
 
@@ -104,7 +107,7 @@ async function main() {
 
   const readyCount = results.filter((r) => ["authenticated", "model_ready", "ready"].includes(r.state)).length;
   console.log(`Benchmark models available: ${readyCount} / ${results.length}`);
-  console.log("Run 'npm run benchmark' to execute the three-model benchmark on audio samples.");
+  console.log("Run 'npm run benchmark' to execute the four-model benchmark on audio samples.");
 }
 
 main().catch((err) => {

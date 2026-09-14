@@ -17,6 +17,7 @@ export default function SampleInspector({ samples, results = [] }: Props) {
 
   const saharaResult = sampleResults.find((r) => r.provider === "sahara");
   const whisperResult = sampleResults.find((r) => r.provider === "whisper-tiny" || r.provider === "model-b");
+  const whisperBaseResult = sampleResults.find((r) => r.provider === "whisper-base");
   const wav2vecResult = sampleResults.find((r) => r.provider === "wav2vec2-base-960h" || r.provider === "model-c");
 
   if (!sample) return null;
@@ -96,8 +97,8 @@ export default function SampleInspector({ samples, results = [] }: Props) {
         </p>
       </div>
 
-      {/* 3 Model Outputs comparison */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* 4 Model Outputs comparison */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Model A: Sahara */}
         <div className="flex flex-col justify-between rounded-xl border border-line bg-paper p-4">
           <div>
@@ -148,7 +149,32 @@ export default function SampleInspector({ samples, results = [] }: Props) {
           </div>
         </div>
 
-        {/* Model C: Wav2Vec2 Base 960h */}
+        {/* Model C: Whisper Base */}
+        <div className="flex flex-col justify-between rounded-xl border border-line bg-paper p-4">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-ink text-xs">Whisper Base</span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-paper-subtle text-ink-muted font-medium">
+                LOCAL, FILESYSTEM-ONLY
+              </span>
+            </div>
+            <div className="mt-3 text-xs space-y-2">
+              <p className="text-ink-muted italic">
+                {whisperBaseResult?.hypothesisTranscript ? (
+                  <span className="text-ink font-serif">&ldquo;{whisperBaseResult.hypothesisTranscript}&rdquo;</span>
+                ) : (
+                  "Local inference runner (Apache-2.0, zero paid API)"
+                )}
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 pt-3 border-t border-line/60 flex items-center justify-between text-[11px] font-mono text-ink-muted">
+            <span>WER: {whisperBaseResult?.wer !== null && whisperBaseResult?.wer !== undefined ? `${(whisperBaseResult.wer * 100).toFixed(1)}%` : "—"}</span>
+            <span>Latency: {whisperBaseResult?.latencyMs ? `${whisperBaseResult.latencyMs}ms` : "—"}</span>
+          </div>
+        </div>
+
+        {/* Model D: Wav2Vec2 Base 960h */}
         <div className="flex flex-col justify-between rounded-xl border border-line bg-paper p-4">
           <div>
             <div className="flex items-center justify-between">

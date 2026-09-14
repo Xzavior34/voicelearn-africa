@@ -319,12 +319,22 @@
       "topicMatched": true,
       "intentMatched": true,
       "correct": true
+    },
+    {
+      "sampleId": "vl-035",
+      "referenceTranscript": "I understand say negative times negative dey give positive, but why exactly e dey work like that? Also, wetin be evaporation, and why water dey disappear when e gets hot? I know say plants need sunlight, but why exactly sunlight dey help the plant make food? And abeg, wetin be the difference between affect and effect?",
+      "languagePair": "en-pcm",
+      "expectedConceptId": null,
+      "predictedConceptId": "signed-multiplication",
+      "topicMatched": false,
+      "intentMatched": false,
+      "correct": false
     }
   ],
   "summary": {
-    "totalSamples": 32,
+    "totalSamples": 33,
     "correct": 26,
-    "accuracy": 0.8125,
-    "topicAccuracy": 0.8125
+    "accuracy": 0.7878787878787878,
+    "topicAccuracy": 0.7878787878787878
   }
 }

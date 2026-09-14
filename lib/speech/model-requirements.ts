@@ -26,6 +26,9 @@ export const WHISPER_TINY_REQUIRED_FILES = [
   "merges.txt",
 ];
 
+/** Same architecture family as Whisper Tiny — identical required-file shape. */
+export const WHISPER_BASE_REQUIRED_FILES = [...WHISPER_TINY_REQUIRED_FILES];
+
 export const WAV2VEC2_BASE_REQUIRED_FILES = [
   "config.json",
   "preprocessor_config.json",

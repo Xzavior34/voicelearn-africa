@@ -148,5 +148,20 @@
     "synthetic": false,
     "consentStatus": "recorded-by-project-contributor",
     "hasAudio": false
+  },
+  {
+    "id": "sample-035",
+    "audioPath": "benchmark/audio/affect_codeswitch_01.wav",
+    "audioSha256": "6cb7ae16750241811cc51eafcd4d2fd966bb306dbc6c1de0faeb87215e439fbb",
+    "referenceTranscript": "I understand say negative times negative dey give positive, but why exactly e dey work like that?\n\nAlso, wetin be evaporation, and why water dey disappear when e gets hot?\n\nI know say plants need sunlight, but why exactly sunlight dey help the plant make food?\n\nAnd abeg, wetin be the difference between affect and effect?",
+    "languagePair": "en-pcm",
+    "domain": "multi-subject",
+    "subject": "multi-subject",
+    "category": "english_pidgin",
+    "intent": "conceptual_question",
+    "expectedConceptId": null,
+    "synthetic": false,
+    "consentStatus": "recorded-by-project-contributor",
+    "hasAudio": true
   }
 ]

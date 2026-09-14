@@ -114,7 +114,10 @@ def transcribe_audio(audio_path: str, model_path: str, repo_id: str, language: s
         if language:
             generate_kwargs["language"] = language
 
-        result = pipe(audio_path, generate_kwargs=generate_kwargs if generate_kwargs else None)
+        if generate_kwargs:
+            result = pipe(audio_path, generate_kwargs=generate_kwargs)
+        else:
+            result = pipe(audio_path)
         infer_latency_ms = round((time.time() - infer_start) * 1000)
         total_latency_ms = round((time.time() - start_total) * 1000)
 

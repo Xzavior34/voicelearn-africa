@@ -2,11 +2,13 @@
  * VoiceLearn Africa — Reproducible Multi-Model Benchmark CLI.
  *
  * Models evaluated:
- *   1. Model A: Intron Sahara v2.5 (sahara) — Remote WebSocket API
+ *   1. Model A: Intron Sahara v2.5 (sahara) — Remote WebSocket API — PRODUCTION model
  *   2. Model B: OpenAI Whisper Tiny (whisper-tiny) — Local, filesystem-only (Apache-2.0)
- *   3. Model C: Meta Wav2Vec2 Base 960h (wav2vec2-base-960h) — Local, filesystem-only baseline (Apache-2.0)
+ *   3. Model C: OpenAI Whisper Base (whisper-base) — Local, filesystem-only (Apache-2.0)
+ *   4. Model D: Meta Wav2Vec2 Base 960h (wav2vec2-base-960h) — Local, filesystem-only baseline (Apache-2.0)
  *
- * ZERO PAID ASR API DEPENDENCIES.
+ * Models B, C, D are benchmark comparators only — never used in production.
+ * ZERO PAID ASR API DEPENDENCIES for B/C/D.
  *
  * Usage:
  *   npm run benchmark
@@ -25,11 +27,21 @@ for (const envFile of [".env.local", ".env"]) {
 import { runAsrComparison, runIntentAccuracyBaseline } from "../lib/benchmark/runner";
 import { BENCHMARK_DATASET } from "../lib/benchmark/dataset/dataset";
 
+const CODE_SWITCH_CATEGORIES = ["nigerian_pidgin", "english_pidgin", "english_yoruba", "educational_code_switching"];
+const MODELS = ["sahara", "whisper-tiny", "whisper-base", "wav2vec2-base-960h"];
+
+function fmtPct(v: number | null): string {
+  return v !== null ? `${(v * 100).toFixed(1)}%` : "N/A";
+}
+function fmtMs(v: number | null | undefined): string {
+  return v !== null && v !== undefined ? `${v.toFixed(0)}ms` : "N/A";
+}
+
 async function main() {
   console.log("=================================================================");
-  console.log(" VoiceLearn Africa — Three-Model Code-Switch Benchmark Runner");
-  console.log(" Sahara v2.5 (Remote) vs. Whisper Tiny (Local) vs. Wav2Vec2 Base 960h (Local)");
-  console.log(" ZERO PAID ASR API DEPENDENCIES");
+  console.log(" VoiceLearn Africa — Four-Model Code-Switch Benchmark Runner");
+  console.log(" Sahara v2.5 (Remote) vs. Whisper Tiny vs. Whisper Base vs. Wav2Vec2 Base 960h (all Local)");
+  console.log(" ZERO PAID ASR API DEPENDENCIES for the three local comparators");
   console.log("=================================================================\n");
 
   const reportsDir = join(__dirname, "..", "lib", "benchmark", "reports");
@@ -37,27 +49,33 @@ async function main() {
   mkdirSync(reportsDir, { recursive: true });
   mkdirSync(resultsDir, { recursive: true });
 
+  const physicalAudioSamples = BENCHMARK_DATASET.filter((s) => s.audioFilePath && existsSync(s.audioFilePath));
+  const physicalCodeSwitchedSamples = physicalAudioSamples.filter((s) => CODE_SWITCH_CATEGORIES.includes(s.category));
+  const textOnlyCount = BENCHMARK_DATASET.length - physicalAudioSamples.length;
+
   console.log(`Loaded ${BENCHMARK_DATASET.length} total dataset records.`);
-  const audioCount = BENCHMARK_DATASET.filter((s) => s.audioFilePath && existsSync(s.audioFilePath)).length;
-  console.log(`Audio recordings present on disk: ${audioCount}`);
-  console.log("Models: [1] Intron Sahara v2.5  [2] OpenAI Whisper Tiny  [3] Meta Wav2Vec2 Base 960h\n");
+  console.log(`Physical audio recordings present on disk: ${physicalAudioSamples.length} (${physicalAudioSamples.map((s) => s.id).join(", ") || "none"})`);
+  console.log(`Physical CODE-SWITCHED audio recordings: ${physicalCodeSwitchedSamples.length}${physicalCodeSwitchedSamples.length === 0 ? "  <- PENDING HUMAN RECORDING, see DATASET.md" : ""}`);
+  console.log(`Text-only fixtures (no audio file): ${textOnlyCount}`);
+  console.log("Models: [1] Intron Sahara v2.5  [2] OpenAI Whisper Tiny  [3] OpenAI Whisper Base  [4] Meta Wav2Vec2 Base 960h\n");
 
   console.log("=== Part 1: Speech-to-Text & Downstream Learning Evaluation ===");
-  const asr = await runAsrComparison(["sahara", "whisper-tiny", "wav2vec2-base-960h"]);
+  const asr = await runAsrComparison(MODELS);
 
   for (const summary of asr.summaries) {
     console.log(
       `  • ${summary.providerName} (${summary.model}) [${summary.runtime}]: ` +
       `audioOnDisk=${summary.audioSamplesAvailable}/${summary.totalDatasetSamples} ` +
-      `| measured=${summary.samplesMeasured} | status=${summary.statusLabel}`
+      `| measured=${summary.samplesMeasured} | status=${summary.statusLabel}` +
+      (summary.statusLabel !== "VERIFIED" ? ` (${summary.skippedReason})` : "")
     );
     if (summary.samplesMeasured > 0) {
       console.log(
-        `    -> WER: ${(summary.meanWer! * 100).toFixed(1)}% | ` +
-        `CER: ${(summary.meanCer! * 100).toFixed(1)}% | ` +
-        `CS-WER: ${summary.codeSwitchWer !== null ? (summary.codeSwitchWer * 100).toFixed(1) + "%" : "N/A"} | ` +
-        `Speech-to-Learning Success: ${(summary.speechToLearningSuccessRate! * 100).toFixed(1)}% | ` +
-        `Latency: ${summary.meanLatencyMs!.toFixed(0)}ms`
+        `    -> WER: ${fmtPct(summary.meanWer)} | ` +
+        `CER: ${fmtPct(summary.meanCer)} | ` +
+        `CS-WER: ${summary.codeSwitchWer !== null ? fmtPct(summary.codeSwitchWer) : "N/A (no code-switched sample measured)"} | ` +
+        `Speech-to-Learning Success: ${fmtPct(summary.speechToLearningSuccessRate)} | ` +
+        `Latency: ${fmtMs(summary.meanLatencyMs)}`
       );
     }
   }
@@ -65,10 +83,10 @@ async function main() {
   console.log("\n=== Part 2: Downstream Educational Intent & Topic Baseline (Ground Truth) ===");
   const intent = runIntentAccuracyBaseline();
   console.log(
-    `  Concept Accuracy: ${(intent.summary.accuracy * 100).toFixed(1)}% (${intent.summary.correct}/${intent.summary.totalSamples})`
+    `  Concept Accuracy: ${fmtPct(intent.summary.accuracy)} (${intent.summary.correct}/${intent.summary.totalSamples})`
   );
   console.log(
-    `  Topic Accuracy:   ${(intent.summary.topicAccuracy * 100).toFixed(1)}% (${intent.summary.correct}/${intent.summary.totalSamples})`
+    `  Topic Accuracy:   ${fmtPct(intent.summary.topicAccuracy)} (${intent.summary.correct}/${intent.summary.totalSamples})`
   );
 
   // Write JSON artifacts
@@ -82,41 +100,88 @@ async function main() {
   }, null, 2));
 
   const evaluationDate = new Date().toISOString().slice(0, 10);
-  const reportMd = `# VoiceLearn Africa — Three-Model Code-Switching Speech Benchmark Report
-**Generated:** ${evaluationDate}  
-**Dataset:** ${BENCHMARK_DATASET.length} curriculum samples (${audioCount} audio files evaluated)  
+
+  // Dataset composition breakdowns for the report
+  const noiseCounts: Record<string, number> = {};
+  const deviceCounts: Record<string, number> = {};
+  const countryCounts: Record<string, number> = {};
+  const accentCounts: Record<string, number> = {};
+  const langPairCounts: Record<string, number> = {};
+  for (const s of BENCHMARK_DATASET) {
+    noiseCounts[s.noiseCondition] = (noiseCounts[s.noiseCondition] || 0) + 1;
+    deviceCounts[s.deviceType] = (deviceCounts[s.deviceType] || 0) + 1;
+    if (s.speakerCountry) countryCounts[s.speakerCountry] = (countryCounts[s.speakerCountry] || 0) + 1;
+    if (s.speakerAccent) accentCounts[s.speakerAccent] = (accentCounts[s.speakerAccent] || 0) + 1;
+    langPairCounts[s.languagePair] = (langPairCounts[s.languagePair] || 0) + 1;
+  }
+  const fmtCounts = (counts: Record<string, number>) =>
+    Object.entries(counts).map(([k, v]) => `${k} (${v})`).join(", ") || "none";
+
+  const reportMd = `# VoiceLearn Africa — Four-Model Code-Switching Speech Benchmark Report
+**Generated:** ${evaluationDate}
 **Run ID:** \`${asr.metadata.runId}\`
 
 ---
 
-## 1. Multi-Model Speech Recognition Comparison
+## 1. Dataset
 
-| Model | Runtime | Audio Samples | Evaluated | WER | CER | Code-Switch WER | Speech-to-Learning Success | Warm Latency | Status |
-|---|---|---|---|---|---|---|---|---|---|
+- **Total records:** ${BENCHMARK_DATASET.length}
+- **Physical audio recordings:** ${physicalAudioSamples.length} (${physicalAudioSamples.map((s) => s.id).join(", ") || "none"})
+- **Physical CODE-SWITCHED audio recordings:** ${physicalCodeSwitchedSamples.length}${physicalCodeSwitchedSamples.length === 0 ? " — **PENDING HUMAN RECORDING**, see DATASET.md Section 4. Do not treat any text fixture below as audio evidence." : ""}
+- **Text-only functional fixtures (no audio file):** ${textOnlyCount}
+- **Audio format (where present):** PCM16 mono WAV
+- **Language pairs:** ${fmtCounts(langPairCounts)}
+- **Noise conditions:** ${fmtCounts(noiseCounts)}
+- **Device types:** ${fmtCounts(deviceCounts)}
+- **Speaker country:** ${fmtCounts(countryCounts)}
+- **Speaker accent:** ${fmtCounts(accentCounts)}
+
+**Physical audio benchmark** (the numbers below) covers only the ${physicalAudioSamples.length} sample(s) listed above. **Text-only functional fixtures** are used solely for the Part 2 ground-truth intent/topic baseline — they are never a substitute for measured ASR accuracy on real speech.
+
+---
+
+## 2. Multi-Model Speech Recognition Comparison
+
+Only physical audio samples are eligible for measurement below. Cells show "N/A" where a metric genuinely was not measured — never a fabricated or assumed value.
+
+| Model | Physical Samples | WER | CER | CS-WER | Latency | Learning Success | Status |
+|---|---|---|---|---|---|---|---|
 ${asr.summaries
   .map((s) => {
-    const wer = s.meanWer !== null ? `${(s.meanWer * 100).toFixed(1)}%` : "—";
-    const cer = s.meanCer !== null ? `${(s.meanCer * 100).toFixed(1)}%` : "—";
-    const cswer = s.codeSwitchWer !== null ? `${(s.codeSwitchWer * 100).toFixed(1)}%` : "—";
-    const s2l = s.speechToLearningSuccessRate !== null ? `${(s.speechToLearningSuccessRate * 100).toFixed(1)}%` : "—";
-    const lat = s.meanLatencyMs !== null ? `${s.meanLatencyMs.toFixed(0)}ms` : "—";
-    return `| **${s.providerName}** | \`${s.runtime}\` | ${s.audioSamplesAvailable}/${s.totalDatasetSamples} | ${s.samplesMeasured} | ${wer} | ${cer} | ${cswer} | ${s2l} | ${lat} | \`${s.statusLabel}\` |`;
+    const wer = s.meanWer !== null ? fmtPct(s.meanWer) : "N/A";
+    const cer = s.meanCer !== null ? fmtPct(s.meanCer) : "N/A";
+    const cswer = s.codeSwitchWer !== null ? fmtPct(s.codeSwitchWer) : "N/A";
+    const s2l = s.speechToLearningSuccessRate !== null ? fmtPct(s.speechToLearningSuccessRate) : "N/A";
+    const lat = fmtMs(s.meanLatencyMs);
+    return `| **${s.providerName}** | ${s.samplesMeasured}/${s.audioSamplesAvailable} | ${wer} | ${cer} | ${cswer} | ${lat} | ${s2l} | \`${s.statusLabel}\` |`;
   })
   .join("\n")}
 
+Status meanings: \`VERIFIED\` = at least one real measurement on physical audio. \`BLOCKED (MODEL_NOT_FOUND)\` = local model files incomplete/absent. \`BLOCKED (REQUIRES_API_ACCESS)\` = remote API key not configured. \`BLOCKED_RUNTIME\` = physical audio and model files exist, but the inference runtime itself failed (e.g. Python/PyTorch unavailable on this device). \`FAILED\` = an unexpected error occurred while measuring. \`CONFIGURED_NOT_MEASURED\` = model reports ready and audio exists, but no attempt has completed yet. \`AUDIO_DATASET_REQUIRED\` = reserved for when the dataset has zero physical audio at all — not used while ${physicalAudioSamples.length > 0 ? "physical audio exists" : "the dataset is genuinely empty of audio"}.
+
 ---
 
-## 2. Downstream Agentic Learning Pipeline (Ground Truth Baseline)
+## 3. Downstream Agentic Learning Pipeline (Ground Truth Baseline)
 
 - **Total Initial Turns:** ${intent.summary.totalSamples}
-- **Concept Entity Extraction Accuracy:** ${(intent.summary.accuracy * 100).toFixed(1)}% (${intent.summary.correct}/${intent.summary.totalSamples})
-- **Curriculum Topic Match Accuracy:** ${(intent.summary.topicAccuracy * 100).toFixed(1)}%
+- **Concept Entity Extraction Accuracy:** ${fmtPct(intent.summary.accuracy)} (${intent.summary.correct}/${intent.summary.totalSamples})
+- **Curriculum Topic Match Accuracy:** ${fmtPct(intent.summary.topicAccuracy)}
+
+This baseline uses ground-truth (human-authored) transcripts to isolate downstream reasoning accuracy from ASR accuracy — it answers "if speech recognition were perfect, how good is the educational reasoning?" It is not a substitute for Section 2's real ASR measurement.
 
 ---
 
-## 3. Fair Comparison Notice
+## 4. Fair Comparison Notice
 
-Sahara is evaluated as the challenge-specific speech model via remote API. Whisper Tiny and Wav2Vec2 Base 960h are independently executed local, filesystem-only baselines under Apache-2.0 licenses, chosen for constrained-hardware benchmarking. Wav2Vec2 Base 960h is an English/LibriSpeech baseline, not an African-language specialist. All models receive the exact same normalized audio (16kHz mono PCM16, SHA-256 verified) and are evaluated against identical human-reviewed reference transcripts.
+Sahara is evaluated as the challenge-specific, production speech model. Whisper Tiny, Whisper Base, and Wav2Vec2 Base 960h are independently executed local, filesystem-only benchmark comparators under Apache-2.0 licenses — none of them are ever used in the production learner-facing app. Wav2Vec2 Base 960h is an English/LibriSpeech baseline, not an African-language specialist. All models receive the exact same normalized audio and are evaluated against identical human-reviewed reference transcripts. No model is tuned per-recording.
+
+---
+
+## 5. Limitations
+
+- The physical audio dataset currently has **${physicalAudioSamples.length} recording(s)**. Do not draw population-level conclusions from this sample size — treat any measured WER/CER here as a single-sample case study, not a statistically powered claim.
+- **Zero physical code-switched audio recordings exist as of this report.** Code-switching behavior is currently evidenced only through text-only fixtures and the tutor's topic/intent handling — not through measured ASR accuracy on genuine code-switched speech.
+- Historical benchmark numbers referenced elsewhere in this repository's documentation may not match this run — always prefer the numbers in this file and \`benchmark/results/summary.json\` over older prose claims.
 `;
 
   writeFileSync(join(reportsDir, "benchmark-report.md"), reportMd);

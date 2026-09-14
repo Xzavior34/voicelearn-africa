@@ -33,10 +33,10 @@ The file lists are audited directly against what the code actually loads:
 
 ## 1. What you already have vs. what's missing
 
-| | `models/whisper-tiny/` | `models/wav2vec2-base-960h/` |
-|---|---|---|
-| Have | `model.safetensors` (144 MB) | `model.safetensors` (360 MB) |
-| Missing | `config.json`, `generation_config.json`, `preprocessor_config.json`, `tokenizer_config.json`, `vocab.json`, `merges.txt` | `config.json`, `preprocessor_config.json`, `tokenizer_config.json`, `vocab.json` |
+| | `models/whisper-tiny/` | `models/whisper-base/` | `models/wav2vec2-base-960h/` |
+|---|---|---|---|
+| Have | `model.safetensors` (144 MB) | **nothing** — not downloaded at all | `model.safetensors` (360 MB) |
+| Missing | `config.json`, `generation_config.json`, `preprocessor_config.json`, `tokenizer_config.json`, `vocab.json`, `merges.txt` | Everything, including the weights (~290 MB for `openai/whisper-base`) | `config.json`, `preprocessor_config.json`, `tokenizer_config.json`, `vocab.json` |
 
 ## 2. Exact files required — audited per file
 
@@ -52,6 +52,20 @@ The file lists are audited directly against what the code actually loads:
 | `merges.txt` | **Required** | BPE merge rules — required alongside `vocab.json`. |
 | `model.safetensors` (have) | **Required** | The weights. Already present — don't also add `pytorch_model.bin`, you don't need both. |
 | `tokenizer.json`, `special_tokens_map.json`, `added_tokens.json`, `normalizer.json` | Not required | Harmless if present; this worker doesn't need them (fast-tokenizer fallback, optional metadata, or an optional `.normalize()` helper it never calls). |
+
+### Whisper Base (`models/whisper-base/`)
+
+Same architecture family as Whisper Tiny — identical required-file shape, larger weights.
+
+| File | Required? | Why |
+|---|---|---|
+| `config.json` | **Required** | Same reason as Whisper Tiny. |
+| `generation_config.json` | **Required** | Same reason as Whisper Tiny. |
+| `preprocessor_config.json` | **Required** | Same reason as Whisper Tiny. |
+| `tokenizer_config.json` | **Required** | Same reason as Whisper Tiny. |
+| `vocab.json` | **Required** | Same reason as Whisper Tiny. |
+| `merges.txt` | **Required** | Same reason as Whisper Tiny. |
+| `model.safetensors` | **Required** | Not yet downloaded at all for this model — see Section 3. |
 
 ### Wav2Vec2 Base 960h (`models/wav2vec2-base-960h/`)
 
@@ -75,14 +89,18 @@ huggingface-cli download openai/whisper-tiny \
   --local-dir ./whisper-tiny-extra \
   --include "config.json" "generation_config.json" "preprocessor_config.json" "tokenizer_config.json" "vocab.json" "merges.txt"
 
+huggingface-cli download openai/whisper-base \
+  --local-dir ./whisper-base \
+  --include "config.json" "generation_config.json" "preprocessor_config.json" "tokenizer_config.json" "vocab.json" "merges.txt" "model.safetensors"
+
 huggingface-cli download facebook/wav2vec2-base-960h \
   --local-dir ./wav2vec2-base-960h-extra \
   --include "config.json" "preprocessor_config.json" "tokenizer_config.json" "vocab.json"
 ```
 
-These are all small text files (a few KB to a few hundred KB total) — nothing like the size of the weights you already have.
+These are all small text files (a few KB to a few hundred KB total) for Whisper Tiny and Wav2Vec2 — nothing like the size of the weights you already have. Whisper Base is a full download (~290 MB) since none of its files exist yet.
 
-Copy the downloaded files into the existing folders, next to the `model.safetensors` that's already there:
+Copy the downloaded files into the existing folders, next to the `model.safetensors` that's already there (Whisper Base gets its own new folder):
 
 ```
 models/whisper-tiny/
@@ -94,6 +112,15 @@ models/whisper-tiny/
   merges.txt               ← add
   model.safetensors         (already present — do not touch/rename)
 
+models/whisper-base/        ← new folder, everything added
+  config.json
+  generation_config.json
+  preprocessor_config.json
+  tokenizer_config.json
+  vocab.json
+  merges.txt
+  model.safetensors
+
 models/wav2vec2-base-960h/
   config.json              ← add
   preprocessor_config.json ← add
@@ -102,7 +129,7 @@ models/wav2vec2-base-960h/
   model.safetensors         (already present — do not touch/rename)
 ```
 
-Do not add `pytorch_model.bin` for either model — you already have `model.safetensors`, and the code only needs one weight format.
+Do not add `pytorch_model.bin` anywhere you already have (or just downloaded) `model.safetensors` — the code only needs one weight format.
 
 ## 4. Exact environment variables
 
@@ -110,6 +137,7 @@ In `.env.local`:
 
 ```bash
 WHISPER_LOCAL_MODEL_PATH=./models/whisper-tiny
+WHISPER_BASE_LOCAL_MODEL_PATH=./models/whisper-base
 WAV2VEC2_LOCAL_MODEL_PATH=./models/wav2vec2-base-960h
 ```
 

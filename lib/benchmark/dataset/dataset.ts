@@ -729,8 +729,35 @@ const RAW_SAMPLES: BenchmarkSample[] = [
       { text: "minus times minus na plus.", language: "en" },
     ],
   },
+  {
+    id: "vl-035",
+    referenceTranscript: "I understand say negative times negative dey give positive, but why exactly e dey work like that? Also, wetin be evaporation, and why water dey disappear when e gets hot? I know say plants need sunlight, but why exactly sunlight dey help the plant make food? And abeg, wetin be the difference between affect and effect?",
+    languagePair: "en-pcm",
+    domain: "science",
+    subject: "science",
+    category: "english_pidgin",
+    intent: "conceptual_question",
+    expectedConceptId: null,
+    noiseCondition: "quiet",
+    deviceType: "smartphone",
+    synthetic: false,
+    speakerCountry: "Nigeria",
+    speakerAccent: "Nigerian English / Pidgin",
+    role: "initial_question",
+    audioFilePath: "benchmark/audio/affect_codeswitch_01.wav",
+    codeSwitchSpans: [
+      { text: "I understand say", language: "pcm" },
+      { text: "dey give positive", language: "pcm" },
+      { text: "why exactly e dey work like that", language: "pcm" },
+      { text: "wetin be evaporation", language: "pcm" },
+      { text: "why water dey disappear when e gets hot", language: "pcm" },
+      { text: "I know say", language: "pcm" },
+      { text: "why exactly sunlight dey help the plant make food", language: "pcm" },
+      { text: "And abeg", language: "pcm" },
+      { text: "wetin be the difference between affect and effect", language: "pcm" },
+    ],
+  },
 ];
-
 export const BENCHMARK_DATASET: BenchmarkSample[] = RAW_SAMPLES.map((s) =>
   BenchmarkSampleSchema.parse(s),
 );

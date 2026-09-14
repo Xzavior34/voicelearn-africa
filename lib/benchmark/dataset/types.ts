@@ -3,18 +3,20 @@ import { z } from "zod";
 /**
  * IMPORTANT — READ THIS BEFORE TRUSTING ANYTHING IN dataset.ts:
  *
- * These are TEXT-ONLY, hand-authored development samples. No audio
- * recordings — human, consented, or synthetic — exist for this dataset
- * yet. `referenceTranscript` is what a learner would plausibly say;
- * there is no corresponding audio file. This dataset is sufficient to:
- *   (a) unit-test the metrics functions (WER/CER/etc.) against known
- *       reference/hypothesis text pairs, and
- *   (b) measure a "ground-truth transcript" baseline for the tutor's
- *       intent/topic extraction accuracy (i.e. "if ASR were perfect,
- *       how well does the downstream educational reasoning perform?").
- * It is NOT sufficient to benchmark real ASR/Sahara accuracy — that
- * requires real audio and is marked REQUIRES_API_ACCESS /
- * LOCAL DEVICE TEST REQUIRED throughout the benchmark reports.
+ * These are mostly TEXT-ONLY, hand-authored development samples — no
+ * corresponding audio file, used to unit-test the metrics functions
+ * (WER/CER/etc.) and to measure a "ground-truth transcript" baseline for
+ * the tutor's intent/topic extraction accuracy (i.e. "if ASR were
+ * perfect, how well does the downstream educational reasoning perform?").
+ *
+ * Physical audio evidence is attached only to samples with an
+ * `audioFilePath` that points to a real file under `benchmark/audio/`.
+ * The current dataset contains two physical recordings: `vl-001`
+ * (`standard_english`) and `vl-035` (human-recorded Nigerian English /
+ * Pidgin code-switching). Do not infer audio evidence from category
+ * counts. Check `audioFilePath` per sample before claiming a sample is
+ * physical audio, and see DATASET.md Section 4 for the recording and
+ * evidence details.
  */
 
 export const SampleCategorySchema = z.enum([
