@@ -171,4 +171,4 @@ python scripts/asr/wav2vec2_worker.py --audio benchmark/audio/learner_recording_
 npm run benchmark:verify
 ```
 
-Checks environment, model paths, model files, Sahara config, audio fixtures, runs a smoke test per local model, then runs the real three-model benchmark and prints a final VERIFIED/BLOCKED summary.
+Checks environment, model paths, model files, Sahara config, audio fixtures, runs a smoke test per local model, then runs the real four-model benchmark and prints a final VERIFIED/BLOCKED summary.

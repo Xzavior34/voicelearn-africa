@@ -1,11 +1,11 @@
 # Demo recording script
 
+> **UPDATED NOTICE:** since this script was written, a real four-model benchmark run has completed (Sahara, Whisper Tiny, Whisper Base, Wav2Vec2 Base 960h — all `VERIFIED`), including a genuine physical code-switched recording. The "Model B/C blocked" line below is stale — see `FINAL_SUBMISSION_EVIDENCE.md` for the current numbers if you want to cite one on camera. The old WER/CER figures (3.6%/0.8%, or elsewhere 7.1%/6.3%) also predate that run — do not cite them.
 
-> **STALE-NUMBER NOTICE (added during model-config audit):** the WER/CER figures in this file (3.6% / 0.8%) are a historical Sahara measurement from an earlier session and predate this repo's current `whisper-tiny`/`wav2vec2-base-960h` benchmark configuration. A separate, now-deleted, later run showed 7.1%/6.3% for the same recording — Sahara's output is not perfectly deterministic across runs, and these docs were not kept in sync with each other. Do not cite either figure in the final submission; re-run `npm run benchmark` with a real `SAHARA_API_KEY` and cite that fresh number instead.
 Target length: 2:00–2:30. Every line below reflects what the current build actually does — the
 sequence is chosen specifically because it's the one that used to fail (stale topic/follow-up
 state) and is now fixed and regression-tested. Nothing here is aspirational; where evidence is
-partial (Model B/C, physical device testing), the script says so on camera rather than skipping
+partial (physical device testing beyond what's already been done), the script says so on camera rather than skipping
 past it.
 
 **Before recording**: check whether `SAHARA_API_KEY` is configured in the environment you're
@@ -71,13 +71,11 @@ feedback + difficulty stepping back down, not the same question repeated verbati
 
 Cut to `/benchmark`. Show, in order:
 
-1. The **text-level intent baseline** (79.3%, 23/29) — say plainly this is reasoning-layer
+1. The **text-level intent baseline** (78.8%, 26/33) — say plainly this is reasoning-layer
    accuracy on hand-typed transcripts, not a speech accuracy number.
-2. The **one real Sahara recording** (WER 3.6%, CER 0.8%) — say plainly this is one sample, not a
-   dataset-wide claim.
-3. **Model B / Model C**, shown as "Not configured" / blocked — say plainly these require API
-   access this environment doesn't have, and that the benchmark UI shows "—" rather than a
-   fabricated 0%.
+2. The **four measured models** (Sahara, Whisper Tiny, Whisper Base, Wav2Vec2 Base 960h — see
+   `FINAL_SUBMISSION_EVIDENCE.md` for exact WER/CER) — say plainly this is on 2 physical
+   recordings, one of them genuinely code-switched, not a dataset-wide claim.
 
 Close with:
 

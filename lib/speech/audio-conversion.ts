@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 
 /**
  * Converts arbitrary browser-recorded audio (webm/opus from MediaRecorder,
@@ -9,10 +10,30 @@ import { spawn } from "node:child_process";
  * This keeps the existing browser-side recording flow
  * (`lib/client/useSpeechRecorder.ts`, MediaRecorder) completely
  * unchanged — conversion happens server-side, in `/api/speech`, right
- * before handing audio to the Sahara provider. Requires `ffmpeg` to be
- * present on the host (it is used via a child process, not a network
- * call).
+ * before handing audio to the Sahara provider.
+ *
+ * FIXED (previously a real production bug): this used to shell out to a
+ * bare `ffmpeg` on PATH, which does NOT exist on Vercel's default Node
+ * serverless runtime (and often not on a fresh Termux/Android install
+ * either) — every browser-recorded (webm/opus) submission silently
+ * failed with AUDIO_CONVERSION_FAILED, which the UI shows as the generic
+ * "I couldn't catch that clearly" message. `ffmpeg-static` bundles a
+ * real portable ffmpeg binary as an npm dependency, so it's present in
+ * the deployed bundle with no server/host configuration required. We
+ * still fall back to a system `ffmpeg` on PATH if `ffmpeg-static` is
+ * ever unavailable.
  */
+function resolveFfmpegPath(): string {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const bundled = require("ffmpeg-static") as string | null;
+    if (bundled && existsSync(bundled)) return bundled;
+  } catch {
+    // ffmpeg-static not installed/resolvable — fall through to system ffmpeg
+  }
+  return "ffmpeg";
+}
+
 export class AudioConversionError extends Error {
   constructor(message: string, public readonly stderr: string) {
     super(message);
@@ -71,7 +92,8 @@ export function convertToPcm16Mono16k(input: Buffer): Promise<Buffer> {
   }
 
   return new Promise((resolve, reject) => {
-    const ffmpeg = spawn("ffmpeg", [
+    const ffmpegPath = resolveFfmpegPath();
+    const ffmpeg = spawn(/*turbopackIgnore: true*/ ffmpegPath, [
       "-hide_banner",
       "-loglevel", "error",
       "-i", "pipe:0", // read input from stdin, auto-detect container/codec
@@ -91,7 +113,7 @@ export function convertToPcm16Mono16k(input: Buffer): Promise<Buffer> {
     ffmpeg.on("error", (err: NodeJS.ErrnoException) => {
       const isNotFound = err.code === "ENOENT";
       const message = isNotFound
-        ? "ffmpeg is not installed on the server host. To transcode compressed audio (e.g. WebM/Opus), install ffmpeg on the host, or provide uncompressed 16kHz 16-bit mono PCM WAV."
+        ? "ffmpeg binary not found (checked ffmpeg-static and system PATH). To transcode compressed audio (e.g. WebM/Opus), ensure the 'ffmpeg-static' dependency installed correctly, or provide uncompressed 16kHz 16-bit mono PCM WAV."
         : `Failed to spawn ffmpeg: ${err.message}`;
       reject(new AudioConversionError(message, ""));
     });

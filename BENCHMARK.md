@@ -37,14 +37,14 @@ Speech-to-Learning Success Rate
 
 ## 3. Audio Normalization & Cryptographic Integrity
 
-To ensure exact parity across all three models:
+To ensure exact parity across all four models:
 1. **Canonical Format:** Every audio sample is converted to **PCM16 Little-Endian, Mono, 16kHz WAV** (`lib/speech/audio-conversion.ts`).
 2. **Cryptographic Hashing:** Every audio recording is fingerprinted with **SHA-256** to verify that all models receive the identical bitstream.
 3. **Independent Ground Truth:** Reference transcripts are hand-reviewed human transcriptions, never derived from any model's hypothesis.
 
 ---
 
-## 4. Dataset Composition (34 Samples)
+## 4. Dataset Composition (35 Samples)
 
 The benchmark dataset (`lib/benchmark/dataset/dataset.ts` and `benchmark/dataset/samples.json`) spans 4 linguistic tiers across secondary Mathematics, Biology, Science, English Language, Physics, and Chemistry:
 
@@ -52,7 +52,7 @@ The benchmark dataset (`lib/benchmark/dataset/dataset.ts` and `benchmark/dataset
 |---|---|---|---|
 | **Tier 1: Standard English** | `en` | 6 | *"Why does a negative number times a negative number give a positive number?"* |
 | **Tier 2: Nigerian Pidgin** | `pcm` | 6 | *"Why negative times negative dey give positive?"* |
-| **Tier 3: English + Pidgin Code-Switching** | `en-pcm` | 14 | *"Teacher talk say photosynthesis dey use light energy, but why chlorophyll dey absorb light like that?"* |
+| **Tier 3: English + Pidgin Code-Switching** | `en-pcm` | 15 | *"Teacher talk say photosynthesis dey use light energy, but why chlorophyll dey absorb light like that?"* (includes one genuine physical audio recording, `vl-035`) |
 | **Tier 4: English + Yoruba Code-Switching** | `en-yo` | 6 | *"Bawo ni photosynthesis se n sele ninu ewe?"* |
 | **Downstream Follow-up Answers** | `en` / `en-pcm` | 2 | *"Twelve."* / *"I think say e go be positive twenty four because minus times minus na plus."* |
 
@@ -83,6 +83,6 @@ The benchmark dataset (`lib/benchmark/dataset/dataset.ts` and `benchmark/dataset
 # 1. Verify model health
 npm run benchmark:health
 
-# 2. Execute full 3-model benchmark
+# 2. Execute full 4-model benchmark
 npm run benchmark
 ```

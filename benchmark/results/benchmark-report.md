@@ -1,45 +1,61 @@
-# VoiceLearn Africa — Code-Switching Speech & Downstream Benchmark Report
-**Generated:** 2026-09-13  
-**Dataset:** 34 samples (Standard English, Nigerian Pidgin, Code-Switched English-Pidgin, Code-Switched English-Yoruba)  
-**Run ID:** `run-1789307620529`
+# VoiceLearn Africa — Four-Model Code-Switching Speech Benchmark Report
+**Generated:** 2026-09-14
+**Run ID:** `run-1789350091875`
 
 ---
 
-## 1. Multi-Model Speech Recognition Comparison
+## 1. Dataset
 
-| Speech Engine | Model ID | Live | Audio Available | Evaluated | Mean WER | Mean CER | Code-Switch Preservation | Tutor Success | Median Latency | Status |
-|---|---|---|---|---|---|---|---|---|---|---|
-| **Intron Sahara v2.5** | `sahara-v2.5` | ✅ Yes | 1/34 | 1 | 7.1% | 6.3% | — | 100.0% | 16635ms | `VERIFIED` |
-| **OpenAI Whisper Large v3** | `whisper-1` | ❌ No | 1/34 | 0 | — | — | — | — | — | `BLOCKED (REQUIRES_API_ACCESS)` |
-| **Google Gemini Audio** | `gemini-1.5-flash` | ✅ Yes | 1/34 | 0 | — | — | — | — | — | `LIVE_AUTHENTICATED (AUDIO_DATASET_REQUIRED)` |
+- **Total records:** 35
+- **Physical audio recordings:** 2 (vl-001, vl-035)
+- **Physical CODE-SWITCHED audio recordings:** 1 (vl-035) — genuine human-recorded code-switched speech, see DATASET.md.
+- **Text-only functional fixtures (no audio file):** 33
+- **Audio format (where present):** PCM16 mono WAV
+- **Language pairs:** en (7), pcm (6), en-pcm (16), en-yo (6)
+- **Noise conditions:** quiet (32), mild (2), moderate (1)
+- **Device types:** smartphone (35)
+- **Speaker country:** Nigeria (35)
+- **Speaker accent:** West African English (8), Nigerian Pidgin (7), Code-switched Nigerian English/Pidgin (13), Yoruba / English code-switching (6), Nigerian English / Pidgin (1)
 
----
-
-## 2. Linguistic Tier Breakdown
-
-| Category | Description | Dataset Samples |
-|---|---|---|
-| **Tier 1: Standard English** | Monolingual formal English baseline across mathematics, science, English, physics, and chemistry. | 6 |
-| **Tier 2: Nigerian Pidgin** | Monolingual Nigerian Pidgin educational phrasing. | 6 |
-| **Tier 3: English <-> Nigerian Pidgin** | Real classroom code-switching mixing subject vocabulary with Pidgin connective phrases. | 14 |
-| **Tier 4: English <-> Yoruba** | Classroom code-switching mixing Yoruba grammar with English subject vocabulary. | 6 |
-| **Follow-up Answers** | Learner responses to follow-up questions for downstream assessment verification. | 2 |
+**Physical audio benchmark** (the numbers below) covers only the 2 sample(s) listed above — a small, honest sample size; do not draw population-level conclusions from it. **Text-only functional fixtures** are used solely for the Part 2 ground-truth intent/topic baseline — they are never a substitute for measured ASR accuracy on real speech.
 
 ---
 
-## 3. Downstream Educational Reasoning Baseline (No ASR)
+## 2. Multi-Model Speech Recognition Comparison
 
-- **Concept Identification Accuracy:** **81.3%** (26/32 initial question samples)
-- **Subject / Topic Classification Accuracy:** **46.9%**
-- **Evaluation Purpose:** Isolates the tutor reasoning pipeline from speech recognition, establishing the performance ceiling when transcription is 100% accurate.
+Only physical audio samples are eligible for measurement below. Cells show "N/A" where a metric genuinely was not measured — never a fabricated or assumed value.
+
+| Model | Physical Samples | WER | CER | CS-WER | Latency | Learning Success | Status |
+|---|---|---|---|---|---|---|---|
+| **Intron Sahara v2.5** | 2/2 | 40.2% | 37.0% | 76.8% | 15983ms | 50.0% | `VERIFIED` |
+| **OpenAI Whisper Tiny (Local, Filesystem-Only)** | 1/2 | 25.0% | 11.9% | N/A | 43655ms | 100.0% | `VERIFIED` |
+| **OpenAI Whisper Base (Local, Filesystem-Only)** | 1/2 | 17.9% | 10.3% | N/A | 85229ms | 100.0% | `VERIFIED` |
+| **Meta Wav2Vec2 Base 960h (Local Baseline, Filesystem-Only)** | 2/2 | 71.4% | 34.7% | 85.7% | 47198ms | 50.0% | `VERIFIED` |
+
+Status meanings: `VERIFIED` = at least one real measurement on physical audio. `BLOCKED (MODEL_NOT_FOUND)` = local model files incomplete/absent. `BLOCKED (REQUIRES_API_ACCESS)` = remote API key not configured. `BLOCKED_RUNTIME` = physical audio and model files exist, but the inference runtime itself failed (e.g. a timeout on constrained hardware). `FAILED` = an unexpected error occurred while measuring. `CONFIGURED_NOT_MEASURED` = model reports ready and audio exists, but no attempt has completed yet. `AUDIO_DATASET_REQUIRED` = reserved for when the dataset has zero physical audio at all.
+
+**Read the numbers, not just the status column.** `VERIFIED` means a real measurement occurred — it does not mean the measured accuracy is high. On this run's genuine code-switched recording (CS-WER column), measured models show a high error rate (76.8%–85.7%) — real, useful signal about how hard this benchmark's code-switching is.
 
 ---
 
-## 4. Reproducibility & Auditing
+## 3. Downstream Agentic Learning Pipeline (Ground Truth Baseline)
 
-Every metric in this report is deterministic and verifiable locally:
-```bash
-npm test                  # 100% automated test suite
-npm run benchmark:health  # Test provider API connectivity
-npm run benchmark:all     # Run full 3-model benchmark
-```
+- **Total Initial Turns:** 33
+- **Concept Entity Extraction Accuracy:** 78.8% (26/33)
+- **Curriculum Topic Match Accuracy:** 78.8%
+
+This baseline uses ground-truth (human-authored) transcripts to isolate downstream reasoning accuracy from ASR accuracy. It is not a substitute for Section 2's real ASR measurement.
+
+---
+
+## 4. Fair Comparison Notice
+
+Sahara is evaluated as the challenge-specific, production speech model. Whisper Tiny, Whisper Base, and Wav2Vec2 Base 960h are independently executed local, filesystem-only benchmark comparators under Apache-2.0 licenses — none of them are ever used in the production learner-facing app. Wav2Vec2 Base 960h is an English/LibriSpeech baseline, not an African-language specialist. All models receive the exact same normalized audio and are evaluated against identical human-reviewed reference transcripts. No model is tuned per-recording.
+
+---
+
+## 5. Limitations
+
+- The physical audio dataset currently has **2 recording(s)**. Do not draw population-level conclusions from this sample size.
+- Whisper Tiny and Whisper Base did not produce a measurement on the longer (26.6s) code-switched recording in this run (a real constrained-hardware timeout on the test device).
+- Historical benchmark numbers referenced elsewhere in this repository's documentation predate this run and should not be cited — always prefer this file and `benchmark/results/summary.json`.

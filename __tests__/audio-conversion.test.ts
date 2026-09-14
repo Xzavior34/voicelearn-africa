@@ -4,6 +4,16 @@ import { convertToPcm16Mono16k, chunkPcm16, tryExtractPcm16Mono16kWav, AudioConv
 
 const hasFfmpeg = (() => {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const bundled = require("ffmpeg-static") as string | null;
+    if (bundled) {
+      const res = spawnSync(bundled, ["-version"], { stdio: "ignore" });
+      if (res.status === 0) return true;
+    }
+  } catch {
+    // fall through to system PATH check
+  }
+  try {
     const res = spawnSync("ffmpeg", ["-version"], { stdio: "ignore" });
     return res.status === 0;
   } catch {
@@ -68,9 +78,20 @@ describe("tryExtractPcm16Mono16kWav", () => {
   });
 });
 
+function resolveTestFfmpegPath(): string {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const bundled = require("ffmpeg-static") as string | null;
+    if (bundled) return bundled;
+  } catch {
+    // fall through to system PATH
+  }
+  return "ffmpeg";
+}
+
 function generateTestWebm(durationSeconds: number): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    const ffmpeg = spawn("ffmpeg", [
+    const ffmpeg = spawn(resolveTestFfmpegPath(), [
       "-hide_banner", "-loglevel", "error",
       "-f", "lavfi", "-i", `sine=frequency=440:duration=${durationSeconds}`,
       "-c:a", "libopus", "-f", "webm", "pipe:1",
@@ -96,6 +117,21 @@ describe.skipIf(!hasFfmpeg)("convertToPcm16Mono16k", () => {
     const pcm = await convertToPcm16Mono16k(oneSecondWebm);
     // 1 second * 16000 samples/sec * 2 bytes/sample (16-bit) * 1 channel
     expect(pcm.length).toBeCloseTo(32000, -2); // within ~100 bytes of exact
+  }, 15_000);
+
+  it("REGRESSION: converts webm/opus using the bundled ffmpeg-static binary even with an empty PATH (simulates Vercel, which has no system ffmpeg)", async () => {
+    // This is the exact production bug that was previously silent: audio
+    // conversion used to shell out to a bare `ffmpeg` resolved from PATH,
+    // which does not exist on Vercel's Node serverless runtime. Clearing
+    // PATH here proves conversion no longer depends on a system ffmpeg.
+    const originalPath = process.env.PATH;
+    process.env.PATH = "";
+    try {
+      const pcm = await convertToPcm16Mono16k(oneSecondWebm);
+      expect(pcm.length).toBeCloseTo(32000, -2);
+    } finally {
+      process.env.PATH = originalPath;
+    }
   }, 15_000);
 
   it("rejects garbage input instead of silently returning empty audio", async () => {

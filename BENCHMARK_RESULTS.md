@@ -1,7 +1,6 @@
 # Benchmark results
 
-
-> **STALE-NUMBER NOTICE (added during model-config audit):** the WER/CER figures in this file (3.6% / 0.8%) are a historical Sahara measurement from an earlier session and predate this repo's current `whisper-tiny`/`wav2vec2-base-960h` benchmark configuration. A separate, now-deleted, later run showed 7.1%/6.3% for the same recording — Sahara's output is not perfectly deterministic across runs, and these docs were not kept in sync with each other. Do not cite either figure in the final submission; re-run `npm run benchmark` with a real `SAHARA_API_KEY` and cite that fresh number instead.
+> **⚠️ ENTIRE DOCUMENT SUPERSEDED (2026-09-14).** Everything below — the single-recording Sahara-only measurement, the "Model B / Model C blocked" 3-model framing, and the 79.3% text-baseline figure — describes a real point-in-time state from 2026-09-12, before Whisper Base was added and before any local model or the code-switched recording (`vl-035`) existed. It is kept as a historical record, not current fact. **For the current, verified four-model benchmark, see `FINAL_SUBMISSION_EVIDENCE.md` and `benchmark/results/summary.json` (run `run-1789350091875`, 2026-09-14): Sahara WER 40.2%/CER 37.0% (2/35 measured), Whisper Tiny WER 25.0%/CER 11.9% (1/35), Whisper Base WER 17.9%/CER 10.3% (1/35), Wav2Vec2 Base 960h WER 71.4%/CER 34.7% (2/35) — all four `VERIFIED`, including one genuine physical code-switched recording.** Do not cite any number below in the final submission.
 Last regenerated: 2026-09-12 (run `npm run benchmark` to reproduce; see raw JSON in
 `lib/benchmark/reports/`).
 

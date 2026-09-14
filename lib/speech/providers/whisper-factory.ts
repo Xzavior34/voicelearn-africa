@@ -185,11 +185,16 @@ export function createWhisperProvider(config: WhisperProviderConfig): SpeechProv
       }
 
       try {
+        // 180s was measured to be too tight on constrained hardware (a
+        // 26.6s recording timed out on Whisper Tiny/Base running on a
+        // phone-class CPU during real device testing). 480s gives real
+        // longer recordings room to finish on slow hardware without
+        // making a genuinely stuck process wait forever.
         const { stdout, stderr, exitCode } = await runPythonWorker(
           providerId,
           "whisper_worker.py",
           ["--audio", tempAudioPath, "--model", localModelDir, "--repo-id", repoId],
-          180_000,
+          480_000,
         );
 
         if (exitCode !== 0 && !stdout.trim()) {

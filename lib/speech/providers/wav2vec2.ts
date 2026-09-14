@@ -182,11 +182,13 @@ export const wav2vec2Provider: SpeechProvider = {
     }
 
     try {
+      // Matched to the Whisper-family timeout for consistency across
+      // constrained-hardware benchmark runs (see whisper-factory.ts).
       const { stdout, stderr, exitCode } = await runPythonWorker(
         "wav2vec2_worker.py",
         ["--audio", tempAudioPath, "--model", LOCAL_MODEL_DIR, "--repo-id", REPO_ID],
         undefined,
-        180_000,
+        480_000,
       );
 
       if (exitCode !== 0 && !stdout.trim()) {

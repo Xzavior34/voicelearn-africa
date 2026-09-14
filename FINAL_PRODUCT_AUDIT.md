@@ -1,7 +1,7 @@
 # FINAL_PRODUCT_AUDIT.md
 
 
-> **STALE-NUMBER NOTICE (added during model-config audit):** the WER/CER figures in this file (3.6% / 0.8%) are a historical Sahara measurement from an earlier session and predate this repo's current `whisper-tiny`/`wav2vec2-base-960h` benchmark configuration. A separate, now-deleted, later run showed 7.1%/6.3% for the same recording — Sahara's output is not perfectly deterministic across runs, and these docs were not kept in sync with each other. Do not cite either figure in the final submission; re-run `npm run benchmark` with a real `SAHARA_API_KEY` and cite that fresh number instead.
+> **⚠️ SUPERSEDED (2026-09-14):** the WER/CER figures in this file (3.6%/0.8%, or elsewhere 7.1%/6.3%) and the "three-model, Model B/C blocked" state described below predate a real, current four-model benchmark run and predate the `vl-035` code-switched recording existing at all. **See `FINAL_SUBMISSION_EVIDENCE.md` for the current state**: Sahara, Whisper Tiny, Whisper Base, and Wav2Vec2 Base 960h are all `VERIFIED`, measured on 2 physical recordings (one genuinely code-switched). This file is kept as a historical audit record — do not cite its numbers or blocked-status claims in the final submission.
 ## STATUS: READY FOR PHONE VERIFICATION
 
 Not "fully submission complete" — the three-model benchmark remains genuinely blocked (Model B/C
